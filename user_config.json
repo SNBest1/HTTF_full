@@ -1,0 +1,6 @@
+{
+  "locations": ["Home", "School", "Hospital", "Work"],
+  "default_location": "Home",
+  "tts_mode": "offline",
+  "elevenlabs_voice_id": "21m00Tcm4TlvDq8ikWAM"
+}

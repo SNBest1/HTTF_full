@@ -1,0 +1,71 @@
+Build a Python backend for a personal AAC (Augmentative and Alternative Communication) prediction engine. Use FastAPI. The goal is to learn how a specific non-verbal user communicates and predict what they want to say next using context.
+
+SUBTOPIC 1: Data Pipeline & Vector Prediction Model
+Task 1.1 — Phrase Logging
+Create a SQLite database with a phrase_logs table:
+id, phrase (text), timestamp (datetime), location (text), hour_of_day (int)
+Write a POST /log_phrase endpoint that accepts {phrase, timestamp, location}
+and inserts into the DB
+Task 1.2 — Nightly Training Job
+Write a script nightly_train.py that runs via APScheduler at 2AM daily
+It pulls all phrase_logs from the DB and extracts individual words + bigrams + full sentences
+It builds a vocabulary frequency map and saves it to a JSON file vocab_store.json
+Format: {"word": {"count": int, "contexts": [list of surrounding phrases]}}
+Task 1.3 — Sentence Embeddings & Vector Store
+Use sentence-transformers (model: all-MiniLM-L6-v2) to embed every unique logged phrase
+Store embeddings in a local ChromaDB vector store (collection: "user_phrases")
+Write a function embed_and_store(phrase: str) that checks for duplicates before adding
+Run this as part of nightly_train.py after building vocab_store.json
+Task 1.4 — Runtime Autocomplete Prediction
+Write a function get_predictions(location: str, time_str: str, partial_input: str = "") -> list[str]
+It builds a context query string: "User is at {location} at {time_str}. {partial_input}"
+Queries ChromaDB for the top 5 semantically similar past phrases
+Returns a mixed list: 2 predicted next single words (from vocab_store bigram frequency)
+1 full sentence (top ChromaDB result)
+Expose this as GET /suggestions?location={loc}&time={time}&partial={input}
+Task 1.5 — Location & Time Context Tagging
+Write a helper get_context_tag() -> dict that returns current hour,
+time-of-day label (Morning/Afternoon/Evening/Night), and reads location from
+a local config file user_config.json (user sets their common locations: Home, School,
+Hospital, Work)
+Auto-tag each logged phrase with this context at insert time
+
+SUBTOPIC 2: API Layer, TTS & Analytics
+Task 2.1 — Local LLM Fallback Integration
+Use the llama-cpp-python library or a local Ollama instance to run a small, fast model (e.g., Llama-3-8B-Instruct or Phi-3-mini) locally.
+Write a function build_system_prompt(location, time, retrieved_phrases: list[str]) -> str
+Template: "You are an AAC assistant helping a non-verbal user communicate.
+The user is at [Location] at [Time]. Their recent phrases include: [Retrieved Phrases].
+Suggest exactly 3 short one-tap responses, returned as a JSON array of strings.
+Keep them natural, personal, and concise."
+Write a POST /llm_suggest endpoint that calls the local LLM with this prompt and returns the 3 suggestions as JSON.
+This acts as a fallback when ChromaDB has fewer than 5 stored phrases.
+Task 2.2 — TTS Integration
+Install pyttsx3 for offline TTS
+Write a POST /speak endpoint that accepts {text: str}
+Speak the text using pyttsx3 in a background thread so the API doesn't block
+Add a config flag in user_config.json: "tts_mode": "offline" or "elevenlabs"
+If elevenlabs: use the ElevenLabs Python SDK, pull ELEVENLABS_API_KEY from .env,
+use voice_id from user_config.json, stream audio back as response
+Task 2.3 — Analytics: Word Frequency & Heatmap Data
+Write a GET /analytics/heatmap endpoint
+Query phrase_logs, tokenize all phrases, count word frequencies
+Return top 50 words as [{word: str, count: int}] sorted by count descending
+Write a GET /analytics/summary endpoint returning:
+total phrases logged, unique words, most active hour, top 3 locations
+Task 2.4 — Autocomplete Success Logging
+Add a autocomplete_logs table: id, suggested_phrase, was_accepted (bool), timestamp
+Add POST /autocomplete/accepted and POST /autocomplete/dismissed endpoints
+Track acceptance rate over time
+Include acceptance_rate (%) in GET /analytics/summary
+Task 2.5 — App Entry Point & CORS
+Wire all routers into main.py with FastAPI
+Add CORS middleware allowing all origins (for Lovable frontend dev)
+On startup, initialize the DB tables if they don't exist, load ChromaDB collection,
+and load vocab_store.json into memory
+Add a GET /health endpoint returning {"status": "ok", "phrases_logged": int}
+Include a README.md explaining how to run: pip install, uvicorn main:app --reload
+
+start with Tasks 1.1 → 2.5 to get the API running, then 1.3 → 1.4 for the vector predictions, then wire TTS (2.2) last since it's most demo-impactful. For the hackathon demo, the LLM fallback (2.1) will cover you while the vector store is still sparse — make sure you have at least 10–15 seeded example phrases in the DB so the heatmap and suggestions look alive.
+
+
