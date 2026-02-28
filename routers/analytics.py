@@ -15,13 +15,13 @@ router = APIRouter(prefix="/analytics")
 @router.get("/heatmap", response_model=HeatmapResponse)
 def get_heatmap() -> HeatmapResponse:
     phrases = get_all_phrases()
-    # Count occurrences per (hour_of_day, location) pair
-    counts: dict[tuple[int, str], int] = Counter(
-        (p["hour_of_day"], p["location"]) for p in phrases
-    )
+    word_counts: Counter[str] = Counter()
+    for p in phrases:
+        for word in p["phrase"].split():
+            word_counts[word.lower()] += 1
     data = [
-        HeatmapEntry(hour=hour, location=loc, count=cnt)
-        for (hour, loc), cnt in sorted(counts.items())
+        HeatmapEntry(word=word, count=count)
+        for word, count in word_counts.most_common(50)
     ]
     return HeatmapResponse(data=data)
 

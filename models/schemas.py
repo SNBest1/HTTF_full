@@ -65,8 +65,7 @@ class AutocompleteResponse(BaseModel):
 # ── Analytics ────────────────────────────────────────────────────────────────
 
 class HeatmapEntry(BaseModel):
-    hour: int
-    location: str
+    word: str
     count: int
 
 
