@@ -1,0 +1,118 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 10%;
+    --foreground: 210 40% 96%;
+
+    --card: 220 18% 14%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 220 18% 14%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 174 60% 50%;
+    --primary-foreground: 220 20% 10%;
+
+    --secondary: 220 16% 20%;
+    --secondary-foreground: 210 40% 90%;
+
+    --muted: 220 14% 18%;
+    --muted-foreground: 215 15% 55%;
+
+    --accent: 174 50% 30%;
+    --accent-foreground: 210 40% 96%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 14% 22%;
+    --input: 220 14% 22%;
+    --ring: 174 60% 50%;
+
+    --radius: 0.75rem;
+
+    /* Category colors */
+    --cat-food: 45 90% 65%;
+    --cat-food-bg: 45 50% 18%;
+    --cat-feelings: 210 70% 60%;
+    --cat-feelings-bg: 210 40% 18%;
+    --cat-actions: 150 60% 50%;
+    --cat-actions-bg: 150 35% 16%;
+    --cat-places: 270 50% 60%;
+    --cat-places-bg: 270 30% 18%;
+    --cat-people: 340 60% 65%;
+    --cat-people-bg: 340 35% 18%;
+
+    /* Suggestion pill */
+    --suggestion: 174 45% 22%;
+    --suggestion-foreground: 174 60% 80%;
+
+    /* Speak button */
+    --speak: 145 65% 42%;
+    --speak-foreground: 145 80% 96%;
+
+    /* Sentence bar */
+    --sentence-bg: 220 18% 12%;
+
+    --sidebar-background: 220 20% 10%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 174 60% 50%;
+    --sidebar-primary-foreground: 220 20% 10%;
+    --sidebar-accent: 220 16% 20%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 220 14% 22%;
+    --sidebar-ring: 174 60% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .aac-grid-btn {
+    @apply flex flex-col items-center justify-center rounded-xl border border-border
+           transition-all duration-150 select-none cursor-pointer
+           hover:scale-[1.04] active:scale-95 shadow-md;
+    min-width: 80px;
+    min-height: 80px;
+  }
+
+  .suggestion-pill {
+    @apply rounded-full px-5 py-3 font-semibold text-sm
+           transition-all duration-300 cursor-pointer select-none
+           hover:scale-[1.03] active:scale-95;
+    background: hsl(var(--suggestion));
+    color: hsl(var(--suggestion-foreground));
+  }
+
+  @keyframes pulse-speak {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+
+  .speak-pulse {
+    animation: pulse-speak 0.4s ease-in-out;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.35s ease-out forwards;
+  }
+}

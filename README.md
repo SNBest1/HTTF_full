@@ -1,124 +1,102 @@
-# AAC Prediction Engine
+# speak-easy — AAC Communication System
 
-A personal FastAPI backend for Augmentative and Alternative Communication (AAC). The system learns how a specific non-verbal user communicates and predicts what they want to say next using location/time context and semantic similarity.
+**speak-easy** is a personal Augmentative and Alternative Communication (AAC) system that helps non-verbal users communicate through a symbol-based board. The system learns how a specific user communicates over time and predicts what they want to say next using their phrase history, location, and time-of-day context.
 
-## Architecture
+## How it works
 
 ```
-Phrase logged → SQLite DB
-                    ↓
-          Nightly training (2 AM)
-          ├── Bigram vocab → vocab_store.json
-          └── Sentence embeddings → ChromaDB
+User presses symbol buttons → builds a sentence → speaks it aloud
+                                                         ↓
+                                               phrase logged to SQLite
+                                                         ↓
+                                             nightly training (2 AM)
+                                        ┌────────────────┴────────────────┐
+                                   Bigram map                    ChromaDB embeddings
+                                (vocab_store.json)                  (chroma_db/)
 
-GET /suggestions
-  ├── Bigram next-word predictions (fast, local)
-  ├── ChromaDB semantic similarity (vector search)
-  └── Ollama LLM fallback (when < 5 phrases in DB)
+When the user starts typing, GET /suggestions runs a 3-layer cascade:
+  Layer 1 — Bigram next-word lookup (instant, local dict)
+  Layer 2 — ChromaDB semantic similarity (vector search over past phrases)
+  Layer 3 — Ollama LLM fallback (phi3, used when < 5 phrases in DB)
 ```
 
-## Quick Start
+The frontend is a React SPA with a grid of 66 AAC symbol buttons across 5 categories (food, feelings, actions, places, people). As the user builds a sentence, the top bar shows AI-powered phrase suggestions that update in real time. Tapping a suggestion appends it and logs it as accepted for future learning.
 
-### 1. Install dependencies
+## Repository structure
+
+```
+├── backend/     FastAPI prediction API (Python)
+└── frontend/    Symbol board UI (React + TypeScript + Vite)
+```
+
+## Quick start
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+ / [Bun](https://bun.sh)
+- [Ollama](https://ollama.com) (`brew install ollama` on macOS)
+
+### 1. Backend
+
 ```bash
+cd backend
+
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### 2. Start Ollama (separate terminal)
-```bash
-brew install ollama   # macOS
-ollama serve
-ollama pull phi3
-```
-
-### 3. Seed database and train
-```bash
+# Seed starter phrases and build the prediction models (run once)
 python -m data.seed_phrases
 python nightly_train.py
-```
 
-### 4. Start the API
-```bash
+# Start Ollama in a separate terminal (needed for LLM fallback)
+ollama serve
+ollama pull phi3
+
+# Start the API on port 8000
 uvicorn main:app --reload --port 8000
 ```
 
-### 5. Interactive API docs
-```
-open http://localhost:8000/docs
+API docs available at `http://localhost:8000/docs`.
+
+### 2. Frontend
+
+```bash
+cd frontend
+
+# Install dependencies
+bun install      # or: npm install
+
+# Start dev server on port 8080
+bun run dev
 ```
 
-## API Endpoints
+Open `http://localhost:8080`. The UI works standalone with fallback data if the backend is not running.
+
+### Configuration
+
+- **`backend/user_config.json`** — set user locations, default location, and TTS mode (`"offline"` or `"elevenlabs"`)
+- **`backend/.env`** — add `ELEVENLABS_API_KEY=...` if using ElevenLabs TTS
+
+## API reference
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Health check + phrase count |
 | `POST` | `/log_phrase` | Record a phrase the user spoke |
-| `GET` | `/suggestions` | Get word/phrase predictions |
-| `POST` | `/llm_suggest` | Direct LLM suggestion (bypasses vector store) |
-| `POST` | `/speak` | Text-to-speech (offline or ElevenLabs) |
-| `GET` | `/analytics/heatmap` | Phrase frequency by hour × location |
-| `GET` | `/analytics/summary` | Aggregate usage statistics |
+| `GET` | `/suggestions` | 3-layer word/phrase predictions |
+| `POST` | `/llm_suggest` | Direct Ollama LLM suggestion |
+| `POST` | `/speak` | Text-to-speech (offline pyttsx3 or ElevenLabs streaming) |
+| `GET` | `/analytics/heatmap` | Word frequency across logged phrases |
+| `GET` | `/analytics/summary` | Total phrases, acceptance rate, top phrases |
 | `POST` | `/autocomplete/accepted` | Log that a suggestion was accepted |
 | `POST` | `/autocomplete/dismissed` | Log that a suggestion was dismissed |
 
-## Configuration
+## Tech stack
 
-Edit `user_config.json` to set locations, default location, and TTS mode.
-
-For ElevenLabs TTS, add your API key to `.env`:
-```
-ELEVENLABS_API_KEY=your_key_here
-```
-
-## End-to-End Test
-
-```bash
-# Health check
-curl http://localhost:8000/health
-
-# Log a phrase
-curl -X POST http://localhost:8000/log_phrase \
-  -H "Content-Type: application/json" \
-  -d '{"phrase": "I need water please", "location": "Home"}'
-
-# Get suggestions
-curl "http://localhost:8000/suggestions?location=Home&partial=I+need"
-
-# LLM suggest
-curl -X POST http://localhost:8000/llm_suggest \
-  -H "Content-Type: application/json" \
-  -d '{"location": "School", "partial_input": "I need"}'
-
-# Analytics
-curl http://localhost:8000/analytics/heatmap
-curl http://localhost:8000/analytics/summary
-
-# TTS (offline)
-curl -X POST http://localhost:8000/speak \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Hello, I need help"}'
-```
-
-## Directory Structure
-
-```
-├── main.py                  # FastAPI app factory, lifespan, CORS
-├── nightly_train.py         # Training pipeline (scheduler + standalone)
-├── user_config.json         # Locations, TTS mode, ElevenLabs voice ID
-├── requirements.txt
-├── db/database.py           # SQLite thread-safe singleton + CRUD
-├── routers/
-│   ├── phrases.py           # POST /log_phrase
-│   ├── suggestions.py       # GET /suggestions
-│   ├── llm.py               # POST /llm_suggest
-│   ├── tts.py               # POST /speak
-│   ├── analytics.py         # GET /analytics/*
-│   └── autocomplete.py      # POST /autocomplete/*
-├── services/
-│   ├── context.py           # Time-of-day labels, context tags
-│   ├── vector_store.py      # ChromaDB client + embedding
-│   ├── vocab.py             # Bigram frequency map + prediction
-│   └── llm_service.py       # Ollama integration
-├── models/schemas.py        # Pydantic request/response models
-└── data/seed_phrases.py     # 15 seed phrases (run once)
-```
+| Layer | Stack |
+|-------|-------|
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Recharts |
+| Backend | FastAPI, SQLite, ChromaDB, sentence-transformers (`all-MiniLM-L6-v2`) |
+| LLM | Ollama + phi3 (local, offline) |
+| TTS | pyttsx3 (offline) or ElevenLabs (streaming audio) |

@@ -1,0 +1,116 @@
+import { useState, useEffect, useCallback } from "react";
+import { Sparkles, Loader2 } from "lucide-react";
+import TopBar from "@/components/TopBar";
+import SuggestionRow from "@/components/SuggestionRow";
+import AACGrid from "@/components/AACGrid";
+import BottomBar from "@/components/BottomBar";
+import NavTabs, { type TabId } from "@/components/NavTabs";
+import AnalyticsView from "@/components/AnalyticsView";
+import ProfileView from "@/components/ProfileView";
+import { fetchSuggestions, fetchLLMSuggest, logPhrase, logAccepted, logDismissed, speakText } from "@/lib/api";
+
+const Index = () => {
+  const [tab, setTab] = useState<TabId>("aac");
+  const [sentence, setSentence] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([
+    "I want water",
+    "Good morning",
+    "Can you help me?",
+  ]);
+  const [llmLoading, setLlmLoading] = useState(false);
+
+  const location = "Home";
+  const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  // Re-fetch suggestions as the sentence changes (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchSuggestions(location, sentence).then(setSuggestions);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [sentence]);
+
+  const addWord = useCallback((word: string) => {
+    setSentence((s) => (s ? `${s} ${word}` : word));
+  }, []);
+
+  const addSuggestion = useCallback((text: string) => {
+    logAccepted(text, sentence, location);
+    setSentence((prev) => (prev ? `${prev} ${text}` : text));
+  }, [sentence, location]);
+
+  const handleBackspace = useCallback(() => {
+    setSentence((s) => {
+      const words = s.trim().split(" ");
+      words.pop();
+      return words.join(" ");
+    });
+  }, []);
+
+  const handleClear = useCallback(() => setSentence(""), []);
+
+  const handleAISuggest = useCallback(async () => {
+    setLlmLoading(true);
+    try {
+      const results = await fetchLLMSuggest(sentence, location);
+      setSuggestions(results);
+    } finally {
+      setLlmLoading(false);
+    }
+  }, [sentence]);
+
+  const handleSpeak = useCallback(async () => {
+    if (!sentence.trim()) return;
+    try {
+      await speakText(sentence);
+    } catch {
+      // fallback to browser TTS
+      if ("speechSynthesis" in window) {
+        const u = new SpeechSynthesisUtterance(sentence);
+        speechSynthesis.speak(u);
+      }
+    }
+    // If the user spoke their own phrase (not from suggestions), log it as dismissed for each current suggestion
+    suggestions.forEach((s) => logDismissed(s, sentence, location));
+    await logPhrase(sentence, location);
+  }, [sentence, suggestions]);
+
+  return (
+    <div className="flex flex-col h-screen bg-background">
+      <TopBar location={location} time={time} />
+
+      {tab === "aac" && (
+        <>
+          <div className="flex items-center">
+            <SuggestionRow suggestions={suggestions} onSelect={addSuggestion} />
+            <button
+              onClick={handleAISuggest}
+              disabled={llmLoading}
+              className="shrink-0 mr-3 p-2.5 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors disabled:opacity-40"
+              aria-label="AI suggestions"
+              title="Get AI suggestions (requires ollama)"
+            >
+              {llmLoading
+                ? <Loader2 size={18} className="text-primary animate-spin" />
+                : <Sparkles size={18} className="text-primary" />}
+            </button>
+          </div>
+          <AACGrid onButtonPress={addWord} />
+          <BottomBar
+            sentence={sentence}
+            onSpeak={handleSpeak}
+            onBackspace={handleBackspace}
+            onClear={handleClear}
+          />
+        </>
+      )}
+
+      {tab === "analytics" && <AnalyticsView />}
+      {tab === "profile" && <ProfileView />}
+
+      <NavTabs active={tab} onChange={setTab} />
+    </div>
+  );
+};
+
+export default Index;
