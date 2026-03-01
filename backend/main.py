@@ -19,11 +19,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from db.database import init_db, count_phrases
+from db.database import init_db, count_phrases, load_db_key
 from services.vector_store import init_vector_store
 from services.vocab import load_vocab
 from routers.tts import start_tts_worker
-from routers import phrases, suggestions, llm, tts, analytics, autocomplete
+from routers import phrases, suggestions, llm, tts, analytics, autocomplete, agent, reminders
 from models.schemas import HealthResponse
 
 load_dotenv()
@@ -43,6 +43,9 @@ def start_scheduler() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # ── Startup ──────────────────────────────────────────────────────────────
+    print("[startup] Loading database encryption key...")
+    load_db_key()
+
     print("[startup] Initialising database...")
     init_db()
 
@@ -95,6 +98,8 @@ app.include_router(llm.router)
 app.include_router(tts.router)
 app.include_router(analytics.router)
 app.include_router(autocomplete.router)
+app.include_router(agent.router)
+app.include_router(reminders.router)
 
 
 # ── Health ────────────────────────────────────────────────────────────────────

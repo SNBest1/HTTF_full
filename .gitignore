@@ -8,3 +8,4 @@ __pycache__/
 venv/
 .DS_Store
 .idea/
+backend/aac.key

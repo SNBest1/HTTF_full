@@ -53,9 +53,7 @@ export async function logDismissed(suggestion: string, partial: string, location
     await fetch(`${BASE_URL}/autocomplete/dismissed`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      // Change 'suggestion' to 'suggested_phrase' 
-      // and remove partial/location to match AutocompleteRequest
-      body: JSON.stringify({ suggested_phrase: suggestion }), 
+      body: JSON.stringify({ suggested_phrase: suggestion }),
     });
   } catch {
     // silent fail
@@ -110,5 +108,50 @@ export async function fetchHeatmap(): Promise<HeatmapEntry[]> {
       { word: "mom", count: 25 }, { word: "dad", count: 22 }, { word: "love", count: 20 },
       { word: "play", count: 18 }, { word: "home", count: 15 },
     ];
+  }
+}
+
+export interface AgentResponse {
+  reply: string;
+  action_type: "make_call" | "order_food" | "set_reminder" | "general_chat";
+  action_payload: Record<string, unknown>;
+}
+
+export interface ReminderItem {
+  id: number;
+  text: string;
+  time: string;
+  created_at: string;
+}
+
+export async function sendAgentMessage(
+  message: string,
+  location: string
+): Promise<AgentResponse> {
+  try {
+    const res = await fetch(`${BASE_URL}/agent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, location }),
+    });
+    if (!res.ok) throw new Error("Agent request failed");
+    return (await res.json()) as AgentResponse;
+  } catch {
+    return {
+      reply: "I'm offline right now. Please try again later.",
+      action_type: "general_chat",
+      action_payload: {},
+    };
+  }
+}
+
+export async function fetchReminders(): Promise<ReminderItem[]> {
+  try {
+    const res = await fetch(`${BASE_URL}/reminders`);
+    if (!res.ok) throw new Error("Failed to fetch reminders");
+    const data = await res.json();
+    return (data.reminders ?? []) as ReminderItem[];
+  } catch {
+    return [];
   }
 }

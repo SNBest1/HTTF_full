@@ -7,7 +7,10 @@ import BottomBar from "@/components/BottomBar";
 import NavTabs, { type TabId } from "@/components/NavTabs";
 import AnalyticsView from "@/components/AnalyticsView";
 import ProfileView from "@/components/ProfileView";
+import AgentView from "@/components/AgentView";
+import SOSModal from "@/components/SOSModal";
 import { fetchSuggestions, fetchLLMSuggest, logPhrase, logAccepted, logDismissed, speakText } from "@/lib/api";
+import type { Settings } from "@/components/SettingsMenu";
 
 const Index = () => {
   const [tab, setTab] = useState<TabId>("aac");
@@ -18,8 +21,21 @@ const Index = () => {
     "Can you help me?",
   ]);
   const [llmLoading, setLlmLoading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sosOpen, setSosOpen] = useState(false);
+  const [settings, setSettings] = useState<Settings>({ theme: "dark", dyslexia: false, highContrast: false });
   // Set to true after speak; consumed (and reset) on the very next word/suggestion press
   const justSpoke = useRef(false);
+
+  // Apply settings to <html> element so CSS selectors can target them
+  useEffect(() => {
+    const html = document.documentElement;
+    html.setAttribute("data-theme", settings.theme);
+    if (settings.dyslexia) html.setAttribute("data-dyslexia", "");
+    else html.removeAttribute("data-dyslexia");
+    if (settings.highContrast) html.setAttribute("data-contrast", "high");
+    else html.removeAttribute("data-contrast");
+  }, [settings]);
 
   const location = "Home";
   const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -90,7 +106,16 @@ const Index = () => {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      <TopBar location={location} time={time} />
+      <TopBar
+        location={location}
+        time={time}
+        settingsOpen={settingsOpen}
+        onSettingsClick={() => setSettingsOpen((o) => !o)}
+        onSOSClick={() => setSosOpen(true)}
+        settings={settings}
+        onSettingsChange={setSettings}
+      />
+      <SOSModal open={sosOpen} onClose={() => setSosOpen(false)} />
 
       {tab === "aac" && (
         <>
@@ -120,6 +145,7 @@ const Index = () => {
 
       {tab === "analytics" && <AnalyticsView />}
       {tab === "profile" && <ProfileView />}
+      {tab === "agent" && <AgentView location={location} />}
 
       <NavTabs active={tab} onChange={setTab} />
     </div>

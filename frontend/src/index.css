@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lexend:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -68,6 +68,66 @@
     --sidebar-border: 220 14% 22%;
     --sidebar-ring: 174 60% 50%;
   }
+
+  /* ── Light theme ─────────────────────────────────────────────────────────── */
+  [data-theme="light"] {
+    --background: 220 20% 97%;
+    --foreground: 220 25% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 12%;
+
+    --primary: 174 60% 36%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 16% 90%;
+    --secondary-foreground: 220 25% 20%;
+
+    --muted: 220 14% 93%;
+    --muted-foreground: 215 15% 42%;
+
+    --accent: 174 50% 85%;
+    --accent-foreground: 174 60% 25%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 14% 82%;
+    --input: 220 14% 82%;
+
+    --cat-food-bg: 45 80% 88%;
+    --cat-feelings-bg: 210 60% 88%;
+    --cat-actions-bg: 150 55% 86%;
+    --cat-places-bg: 270 45% 88%;
+    --cat-people-bg: 340 55% 88%;
+
+    --suggestion: 174 45% 82%;
+    --suggestion-foreground: 174 60% 25%;
+
+    --speak: 145 65% 38%;
+    --sentence-bg: 220 18% 92%;
+  }
+
+  /* ── High contrast (overlays whichever theme is active) ─────────────────── */
+  [data-contrast="high"] {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 100%;
+    --border: 0 0% 55%;
+    --primary: 174 100% 62%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 80%;
+    --sentence-bg: 0 0% 4%;
+    --suggestion: 174 100% 20%;
+    --suggestion-foreground: 174 100% 90%;
+  }
 }
 
 @layer base {
@@ -79,6 +139,18 @@
     @apply bg-background text-foreground font-sans;
     font-family: 'Inter', system-ui, sans-serif;
   }
+
+  /* ── Dyslexia-friendly font ──────────────────────────────────────────────── */
+  [data-dyslexia] body,
+  [data-dyslexia] button,
+  [data-dyslexia] span,
+  [data-dyslexia] div,
+  [data-dyslexia] p {
+    font-family: 'Lexend', sans-serif !important;
+    letter-spacing: 0.04em;
+    word-spacing: 0.12em;
+    line-height: 1.6;
+  }
 }
 
 @layer utilities {
@@ -87,7 +159,7 @@
            transition-all duration-150 select-none cursor-pointer
            hover:scale-[1.04] active:scale-95 shadow-md;
     min-width: 80px;
-    min-height: 80px;
+    min-height: 110px;
   }
 
   .suggestion-pill {

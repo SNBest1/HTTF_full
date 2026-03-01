@@ -1,6 +1,6 @@
-import { Grid3X3, BarChart3, User } from "lucide-react";
+import { Grid3X3, BarChart3, User, Bot } from "lucide-react";
 
-export type TabId = "aac" | "analytics" | "profile";
+export type TabId = "aac" | "analytics" | "profile" | "agent";
 
 interface NavTabsProps {
   active: TabId;
@@ -11,6 +11,7 @@ const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "aac", label: "AAC Board", icon: <Grid3X3 size={20} /> },
   { id: "analytics", label: "Analytics", icon: <BarChart3 size={20} /> },
   { id: "profile", label: "Profile", icon: <User size={20} /> },
+  { id: "agent", label: "Agent", icon: <Bot size={20} /> },
 ];
 
 const NavTabs = ({ active, onChange }: NavTabsProps) => {

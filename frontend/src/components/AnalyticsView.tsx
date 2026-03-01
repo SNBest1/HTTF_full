@@ -53,11 +53,11 @@ const AnalyticsView = () => {
       )}
       <div>
         <h2 className="text-lg font-bold text-foreground mb-3">Vocabulary Heatmap</h2>
-        <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
+        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
           {data.map((entry) => (
             <div
               key={entry.word}
-              className="aspect-square rounded-lg flex items-center justify-center text-[10px] font-semibold text-foreground/90 cursor-default"
+              className="aspect-square rounded-lg flex items-center justify-center text-2xl font-semibold text-foreground/90 cursor-default"
               style={{ backgroundColor: getHeatColor(entry.count) }}
               title={`${entry.word}: ${entry.count}`}
             >

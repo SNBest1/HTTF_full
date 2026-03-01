@@ -8,3 +8,4 @@ pyttsx3==2.99
 elevenlabs==2.37.0
 python-dotenv==1.2.1
 pydantic==2.11.2
+sqlcipher3==0.5.3

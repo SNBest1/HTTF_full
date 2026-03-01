@@ -86,3 +86,34 @@ class SummaryResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     phrases_logged: int
+
+
+# ── Agent / Intent Router ─────────────────────────────────────────────────────
+
+class AgentRequest(BaseModel):
+    message: str = Field(..., min_length=1, description="User's natural language message to the agent")
+    location: str = Field(default="Home", description="Current user location for context")
+
+
+class AgentResponse(BaseModel):
+    reply: str = Field(..., description="Conversational reply string shown in the chat bubble")
+    action_type: Literal["make_call", "order_food", "set_reminder", "general_chat"] = Field(
+        ..., description="Classified intent action"
+    )
+    action_payload: dict = Field(
+        default_factory=dict,
+        description="Structured action data — shape varies by action_type",
+    )
+
+
+# ── Reminders ─────────────────────────────────────────────────────────────────
+
+class ReminderItem(BaseModel):
+    id: int
+    text: str
+    time: str
+    created_at: str
+
+
+class RemindersResponse(BaseModel):
+    reminders: list[ReminderItem]
