@@ -9,3 +9,7 @@ venv/
 .DS_Store
 .idea/
 backend/aac.key
+.claude/
+featurestoadd.md
+issues.md
+presnetation.md 
