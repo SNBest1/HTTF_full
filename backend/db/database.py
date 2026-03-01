@@ -64,7 +64,7 @@ def get_connection() -> sqlite3.Connection:
         _conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
         # Apply encryption key immediately after connect — must be the very
         # first statement before any read or write.
-        _conn.execute("PRAGMA key = ?", (_db_key,))
+        _conn.execute(f"PRAGMA key = '{_db_key}'")
         _conn.row_factory = sqlite3.Row
     return _conn
 
