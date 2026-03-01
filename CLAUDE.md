@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository structure
 
-This is a two-service monorepo for a personal AAC (Augmentative and Alternative Communication) system called **speak-easy**:
+This is a two-service monorepo for a personal AAC (Augmentative and Alternative Communication) system called **ConnectAble**:
 
 | Directory | Role | Stack |
 |---|---|---|

@@ -25,7 +25,7 @@ To run a single test file: `bunx vitest run src/test/example.test.ts`
 
 ## Architecture
 
-This is a **speak-easy AAC (Augmentative and Alternative Communication)** app — a symbol-based communication board for users who have difficulty speaking. It is a Vite + React + TypeScript SPA scaffolded via Lovable.
+This is a **ConnectAble AAC (Augmentative and Alternative Communication)** app — a symbol-based communication board for users who have difficulty speaking. It is a Vite + React + TypeScript SPA scaffolded via Lovable.
 
 ### Data flow
 
