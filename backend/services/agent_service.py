@@ -32,8 +32,14 @@ CLASSIFICATION_SYSTEM_PROMPT = (
     '{"intent": "order_food", "entities": {"items": ["pizza", "drink"]}}\n'
     "  message: 'Remind me to take my medicine at 9am' → "
     '{"intent": "set_reminder", "entities": {"text": "take my medicine", "time": "9:00 AM"}}\n'
+    "  message: 'Set a reminder for my appointment at 2:30 PM' → "
+    '{"intent": "set_reminder", "entities": {"text": "appointment", "time": "2:30 PM"}}\n'
+    "  message: 'Remind me to call dad tonight' → "
+    '{"intent": "set_reminder", "entities": {"text": "call dad", "time": ""}}\n'
     "  message: 'How are you?' → "
-    '{"intent": "general_chat", "entities": {}}'
+    '{"intent": "general_chat", "entities": {}}\n'
+    "For set_reminder, extract time as H:MM AM/PM (e.g. '9:00 AM', '2:30 PM'). "
+    "If no specific time is mentioned, use empty string for time."
 )
 
 REPLY_SYSTEM_PROMPT = (

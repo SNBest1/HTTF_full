@@ -20,7 +20,8 @@ const SOSModal = ({ open, onClose }: SOSModalProps) => {
         className="max-w-sm border-2 border-destructive bg-background"
         style={{ borderColor: "hsl(0 72% 55%)" }}
       >
-        <DialogHeader className="text-center space-y-2">
+        {/* pr-10 clears the X close button injected by DialogContent */}
+        <DialogHeader className="text-center space-y-2 pr-10">
           <DialogTitle className="text-3xl font-extrabold text-destructive tracking-wide">
             🚨 Emergency
           </DialogTitle>
@@ -34,9 +35,9 @@ const SOSModal = ({ open, onClose }: SOSModalProps) => {
             <Button
               variant="destructive"
               size="lg"
-              className="w-full text-lg font-bold gap-2 py-6"
+              className="w-full text-base font-bold gap-2 py-6"
             >
-              <Phone size={22} />
+              <Phone size={22} className="shrink-0" />
               Call Emergency Services
             </Button>
           </a>
@@ -44,10 +45,10 @@ const SOSModal = ({ open, onClose }: SOSModalProps) => {
           <Button
             variant="outline"
             size="lg"
-            className="w-full text-lg font-bold gap-2 py-6 border-muted text-muted-foreground"
+            className="w-full text-base font-bold gap-2 py-6 border-muted text-muted-foreground"
             disabled
           >
-            <Users size={22} />
+            <Users size={22} className="shrink-0" />
             Notify Contacts (Coming Soon)
           </Button>
 
@@ -57,7 +58,7 @@ const SOSModal = ({ open, onClose }: SOSModalProps) => {
             className="w-full gap-2 mt-1 text-muted-foreground"
             onClick={onClose}
           >
-            <X size={18} />
+            <X size={18} className="shrink-0" />
             Cancel
           </Button>
         </div>
