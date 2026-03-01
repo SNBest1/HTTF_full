@@ -8,6 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install dependencies
 pip install -r requirements.txt
 
+# Generate the database encryption key (run once per machine, never commit)
+python3 -c "import secrets; print(secrets.token_hex(32))" > aac.key && chmod 0600 aac.key
+
 # Seed the SQLite database (run once — idempotent)
 python -m data.seed_phrases
 
@@ -17,14 +20,22 @@ python nightly_train.py
 # Start the API (hot-reload)
 uvicorn main:app --reload --port 8000
 
-# Start Ollama LLM backend (separate terminal, required for /llm_suggest and cold-start fallback)
+# Start Ollama LLM backend (separate terminal, required for /llm_suggest, /agent, and cold-start fallback)
 ollama serve
 ollama pull phi3
 ```
 
 ## Architecture
 
-The system is a 3-layer AAC prediction pipeline:
+### Startup sequence (`main.py` lifespan)
+1. `load_db_key()` — Read AES-256 passphrase from `aac.key`
+2. `init_db()` — Create SQLite tables if missing
+3. `init_vector_store()` — Load ChromaDB + sentence-transformer model
+4. `load_vocab()` — Load bigram map from `vocab_store.json`
+5. `start_tts_worker()` — Spawn pyttsx3 daemon thread
+6. `start_scheduler()` — Register APScheduler cron job (nightly at 02:00)
+
+### 3-layer prediction pipeline
 
 ```
 User logs phrase → SQLite (db/database.py)
@@ -35,39 +46,58 @@ User logs phrase → SQLite (db/database.py)
 
 GET /suggestions cascade:
   Layer 1 — Bigram next-word (services/vocab.py) — instant dict lookup
-  Layer 2 — ChromaDB vector similarity (services/vector_store.py) — semantic
-  Layer 3 — Ollama LLM fallback (services/llm_service.py) — when < 5 phrases in DB
+  Layer 2 — ChromaDB vector similarity (services/vector_store.py) — semantic search (if ≥ 5 phrases)
+  Layer 3 — Ollama LLM fallback (services/llm_service.py) — cold start (< 5 phrases)
 ```
 
-**Startup sequence** (`main.py` lifespan): `init_db()` → `init_vector_store()` → `load_vocab()` → `start_tts_worker()` → `start_scheduler()`
+### Agent pipeline
 
-### Key constraints & gotchas
+```
+POST /agent {message, location}
+      ↓
+IntentClassifier.classify(message) via phi3
+      ↓
+Intent: make_call | order_food | set_reminder | general_chat
+      ↓
+Tool: call_tool.py | food_tool.py | reminder_tool.py | LLM reply
+      ↓
+AgentResponse {reply, action_type, action_payload}
+```
 
-- **ChromaDB n_results guard**: always `min(n_results, collection.count())` before `.query()` — ChromaDB 1.x raises (not returns fewer) when `n_results > collection size`. See `services/vector_store.py:query_similar()`.
-- **pyttsx3 thread**: must run on a single dedicated daemon thread — never call `pyttsx3.init()` from async code or multiple threads. The `queue.Queue` in `routers/tts.py` is the only correct interface.
-- **ChromaDB API**: uses 1.x `PersistentClient(path=...)` — the old 0.4.x `Settings` API is gone.
-- **Bigram keys**: pipe-delimited `"word1|word2"` — outer dict key is the first word, inner dict maps next-words to counts.
-- **Document IDs in ChromaDB**: MD5 hash of phrase text — makes upserts idempotent without a separate existence check.
-
-### Module responsibilities
+## Module responsibilities
 
 | Module | Role |
 |---|---|
-| `db/database.py` | Thread-safe SQLite singleton with `threading.Lock`; owns `phrase_logs` and `autocomplete_logs` tables |
+| `db/database.py` | SQLCipher-encrypted SQLite singleton with `threading.Lock`; owns `phrase_logs`, `autocomplete_logs`, `reminders` tables |
 | `services/vocab.py` | Bigram frequency map; `predict_next_words()` uses in-memory dict loaded from `vocab_store.json` |
 | `services/vector_store.py` | ChromaDB + `all-MiniLM-L6-v2` embeddings; module-level singletons initialised once at startup |
-| `services/llm_service.py` | Ollama async client; builds persona-aware system prompt; expects JSON array response |
-| `services/context.py` | Maps hour → time-of-day band (5 bands); composes `"{location}_{band}"` context tags stored as ChromaDB metadata |
+| `services/llm_service.py` | Ollama async client; builds persona-aware system prompt; robustly parses JSON array response |
+| `services/context.py` | Maps hour → time-of-day band (6 bands); composes `"{location}_{band}"` context tags stored as ChromaDB metadata |
+| `services/agent_service.py` | `IntentClassifier`: classifies message via phi3; generates reply for general_chat via phi3 |
+| `services/tools/call_tool.py` | Static contact book (mom, dad, doctor, nurse); returns `tel:` URI |
+| `services/tools/food_tool.py` | Static menu with prices; fuzzy matches items, returns order summary + ETA |
+| `services/tools/reminder_tool.py` | Inserts reminder into SQLite `reminders` table |
+| `routers/tts.py` | macOS: delegates to `say` subprocess (stateless); others: pyttsx3 queue; ElevenLabs: `StreamingResponse audio/mpeg` |
 | `nightly_train.py` | Dual-purpose: importable by APScheduler (2 AM cron) and runnable standalone |
-| `routers/tts.py` | Two paths: pyttsx3 (offline, via queue) or ElevenLabs (streaming, `StreamingResponse audio/mpeg`) |
 
-### Runtime-generated files (gitignored)
+## Key constraints & gotchas
 
-- `aac_data.db` — SQLite database
+- **`aac.key` required at startup**: `load_db_key()` raises `FileNotFoundError` if missing — server refuses to start rather than silently opening an unencrypted DB. Generate with the command above.
+- **ChromaDB n_results guard**: always `min(n_results, collection.count())` before `.query()` — ChromaDB 1.x raises (not returns fewer) when `n_results > collection size`. See `services/vector_store.py`.
+- **pyttsx3 thread**: must run on a single dedicated daemon thread. On macOS, the router delegates to the `say` subprocess directly (stateless, avoids pyttsx3 corruption). The `queue.Queue` in `routers/tts.py` is the correct interface for non-macOS.
+- **ChromaDB API**: uses 1.x `PersistentClient(path=...)` — the old 0.4.x `Settings` API is gone.
+- **Bigram keys**: pipe-delimited `"word1|word2"` — outer dict key is the first word, inner dict maps next-words to counts.
+- **Document IDs in ChromaDB**: MD5 hash of phrase text — makes upserts idempotent without a separate existence check.
+- **LLM response parsing** (`llm_service.py`): tries `json.loads()` → regex for first `[...]` block → plain-text line split. Never raises on malformed LLM output.
+
+## Runtime-generated files (gitignored)
+
+- `aac.key` — AES-256 passphrase (mode 0o600)
+- `aac_data.db` — SQLite database (encrypted)
 - `vocab_store.json` — bigram frequency map
 - `chroma_db/` — ChromaDB persistent storage
 
-### Configuration
+## Configuration
 
 - `user_config.json` — locations list, default location, `tts_mode` (`"offline"` or `"elevenlabs"`), ElevenLabs voice ID
 - `.env` — `ELEVENLABS_API_KEY` (only needed when `tts_mode = "elevenlabs"`)

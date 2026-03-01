@@ -1,76 +1,116 @@
-# AAC Prediction Engine
+# ConnectAble Backend
 
-A personal FastAPI backend for Augmentative and Alternative Communication (AAC). The system learns how a specific non-verbal user communicates and predicts what they want to say next using location/time context and semantic similarity.
+A FastAPI backend for Augmentative and Alternative Communication (AAC). Learns how a specific user communicates and predicts what they want to say using phrase history, location, and time-of-day context. Also provides an intent-based agent for hands-free actions.
 
 ## Architecture
 
 ```
-Phrase logged → SQLite DB
+Phrase logged → SQLite (AES-256 encrypted)
                     ↓
           Nightly training (2 AM)
           ├── Bigram vocab → vocab_store.json
           └── Sentence embeddings → ChromaDB
 
-GET /suggestions
-  ├── Bigram next-word predictions (fast, local)
-  ├── ChromaDB semantic similarity (vector search)
-  └── Ollama LLM fallback (when < 5 phrases in DB)
+GET /suggestions cascade:
+  Layer 1 — Bigram next-word predictions (instant, local dict)
+  Layer 2 — ChromaDB semantic similarity (vector search, if ≥ 5 phrases)
+  Layer 3 — Ollama LLM fallback (phi3, cold start when < 5 phrases)
+
+POST /agent cascade:
+  IntentClassifier (phi3) → make_call | order_food | set_reminder | general_chat
+  Tool dispatch → call_tool | food_tool | reminder_tool | LLM reply
 ```
 
-## Quick Start
+## Quick start
 
-### 1. Install dependencies
 ```bash
+# 1. Install
 pip install -r requirements.txt
-```
 
-### 2. Start Ollama (separate terminal)
-```bash
-brew install ollama   # macOS
-ollama serve
-ollama pull phi3
-```
+# 2. Generate encryption key (once per machine, never commit)
+python3 -c "import secrets; print(secrets.token_hex(32))" > aac.key && chmod 0600 aac.key
 
-### 3. Seed database and train
-```bash
+# 3. Start Ollama (separate terminal)
+ollama serve && ollama pull phi3
+
+# 4. Seed and train
 python -m data.seed_phrases
 python nightly_train.py
-```
 
-### 4. Start the API
-```bash
+# 5. Run
 uvicorn main:app --reload --port 8000
 ```
 
-### 5. Interactive API docs
-```
-open http://localhost:8000/docs
-```
+API docs: `http://localhost:8000/docs`
 
-## API Endpoints
+## API endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Health check + phrase count |
 | `POST` | `/log_phrase` | Record a phrase the user spoke |
-| `GET` | `/suggestions` | Get word/phrase predictions |
-| `POST` | `/llm_suggest` | Direct LLM suggestion (bypasses vector store) |
-| `POST` | `/speak` | Text-to-speech (offline or ElevenLabs) |
-| `GET` | `/analytics/heatmap` | Phrase frequency by hour × location |
-| `GET` | `/analytics/summary` | Aggregate usage statistics |
-| `POST` | `/autocomplete/accepted` | Log that a suggestion was accepted |
-| `POST` | `/autocomplete/dismissed` | Log that a suggestion was dismissed |
+| `GET` | `/suggestions?location=&partial=` | 3-layer predictions |
+| `POST` | `/llm_suggest` | Direct Ollama suggestion (bypasses vector store) |
+| `POST` | `/speak` | Text-to-speech (offline or ElevenLabs streaming) |
+| `GET` | `/analytics/heatmap` | Top 50 words by frequency |
+| `GET` | `/analytics/summary` | Total phrases, acceptance rate, top phrases + locations |
+| `POST` | `/autocomplete/accepted` | Log accepted suggestion |
+| `POST` | `/autocomplete/dismissed` | Log dismissed suggestion |
+| `POST` | `/agent` | Intent classification + tool dispatch |
+| `GET` | `/reminders` | List all reminders |
+
+## Directory structure
+
+```
+├── main.py                      # App factory, lifespan, CORS
+├── nightly_train.py             # Training pipeline (scheduler + standalone)
+├── user_config.json             # Locations, TTS mode, ElevenLabs voice ID
+├── aac.key                      # AES-256 key (gitignored, generate once)
+├── db/
+│   └── database.py              # SQLCipher-encrypted SQLite singleton + CRUD
+├── routers/
+│   ├── phrases.py               # POST /log_phrase
+│   ├── suggestions.py           # GET /suggestions
+│   ├── llm.py                   # POST /llm_suggest
+│   ├── tts.py                   # POST /speak
+│   ├── analytics.py             # GET /analytics/heatmap, /analytics/summary
+│   ├── autocomplete.py          # POST /autocomplete/accepted|dismissed
+│   ├── agent.py                 # POST /agent
+│   └── reminders.py             # GET /reminders
+├── services/
+│   ├── context.py               # Time-of-day bands, context tag composer
+│   ├── vector_store.py          # ChromaDB + sentence-transformer embeddings
+│   ├── vocab.py                 # Bigram frequency map + next-word prediction
+│   ├── llm_service.py           # Ollama async client + response parser
+│   ├── agent_service.py         # IntentClassifier (phi3)
+│   └── tools/
+│       ├── call_tool.py         # Contact book → tel: URI
+│       ├── food_tool.py         # Static menu, fuzzy match, order summary
+│       └── reminder_tool.py     # Insert reminder into SQLite
+├── models/
+│   └── schemas.py               # All Pydantic request/response models
+└── data/
+    └── seed_phrases.py          # 15 starter phrases (idempotent, run once)
+```
 
 ## Configuration
 
-Edit `user_config.json` to set locations, default location, and TTS mode.
+**`user_config.json`** (edit to customise):
+```json
+{
+  "locations": ["Home", "School", "Hospital", "Work"],
+  "default_location": "Home",
+  "tts_mode": "offline",
+  "elevenlabs_voice_id": "21m00Tcm4TlvDq8ikWAM"
+}
+```
 
-For ElevenLabs TTS, add your API key to `.env`:
+**`.env`** (only needed for ElevenLabs):
 ```
 ELEVENLABS_API_KEY=your_key_here
 ```
 
-## End-to-End Test
+## Example curl calls
 
 ```bash
 # Health check
@@ -84,41 +124,14 @@ curl -X POST http://localhost:8000/log_phrase \
 # Get suggestions
 curl "http://localhost:8000/suggestions?location=Home&partial=I+need"
 
-# LLM suggest
-curl -X POST http://localhost:8000/llm_suggest \
+# Agent intent
+curl -X POST http://localhost:8000/agent \
   -H "Content-Type: application/json" \
-  -d '{"location": "School", "partial_input": "I need"}'
+  -d '{"message": "Call mom", "location": "Home"}'
+
+# List reminders
+curl http://localhost:8000/reminders
 
 # Analytics
-curl http://localhost:8000/analytics/heatmap
 curl http://localhost:8000/analytics/summary
-
-# TTS (offline)
-curl -X POST http://localhost:8000/speak \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Hello, I need help"}'
-```
-
-## Directory Structure
-
-```
-├── main.py                  # FastAPI app factory, lifespan, CORS
-├── nightly_train.py         # Training pipeline (scheduler + standalone)
-├── user_config.json         # Locations, TTS mode, ElevenLabs voice ID
-├── requirements.txt
-├── db/database.py           # SQLite thread-safe singleton + CRUD
-├── routers/
-│   ├── phrases.py           # POST /log_phrase
-│   ├── suggestions.py       # GET /suggestions
-│   ├── llm.py               # POST /llm_suggest
-│   ├── tts.py               # POST /speak
-│   ├── analytics.py         # GET /analytics/*
-│   └── autocomplete.py      # POST /autocomplete/*
-├── services/
-│   ├── context.py           # Time-of-day labels, context tags
-│   ├── vector_store.py      # ChromaDB client + embedding
-│   ├── vocab.py             # Bigram frequency map + prediction
-│   └── llm_service.py       # Ollama integration
-├── models/schemas.py        # Pydantic request/response models
-└── data/seed_phrases.py     # 15 seed phrases (run once)
 ```
