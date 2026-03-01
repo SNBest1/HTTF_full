@@ -122,3 +122,11 @@ class RemindersResponse(BaseModel):
 class DeleteReminderResponse(BaseModel):
     deleted: bool
     id: int
+
+
+# ── Config ────────────────────────────────────────────────────────────────────
+
+class ConfigResponse(BaseModel):
+    locations: list[str]
+    default_location: str
+    tts_mode: str

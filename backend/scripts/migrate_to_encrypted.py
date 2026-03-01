@@ -55,6 +55,7 @@ except ImportError:
 # Open plaintext DB with sqlcipher3 without setting a key (reads as plaintext)
 # Then ATTACH the new encrypted DB and export into it
 plain_conn = _cipher_sqlite3.connect(str(DB_PATH))
+assert re.fullmatch(r'[0-9a-fA-F]+', passphrase), "Key must be hex"
 plain_conn.execute(
     f"ATTACH DATABASE '{ENCRYPTED_PATH}' AS encrypted KEY '{passphrase}'"
 )
@@ -75,7 +76,7 @@ except ImportError:
     import pysqlcipher3.dbapi2 as _cipher_sqlite3  # type: ignore
 
 verify_conn = _cipher_sqlite3.connect(str(DB_PATH))
-verify_conn.execute(f"PRAGMA key = '{passphrase}'")
+verify_conn.execute("PRAGMA key = ?", (passphrase,))
 row = verify_conn.execute("SELECT COUNT(*) FROM phrase_logs").fetchone()
 verify_conn.close()
 print(f"[migrate] Verification OK — {row[0]} phrases in encrypted DB.")

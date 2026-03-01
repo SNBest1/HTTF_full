@@ -36,7 +36,7 @@ An **agent tab** lets users send natural language messages that are classified i
 ### Prerequisites
 
 - Python 3.11+
-- Node.js 18+ / [Bun](https://bun.sh)
+- Node.js 18+
 - [Ollama](https://ollama.com) (`brew install ollama` on macOS)
 
 ### 1. Backend
@@ -70,10 +70,10 @@ API docs available at `http://localhost:8000/docs`.
 cd frontend
 
 # Install dependencies
-bun install      # or: npm install
+npm install
 
 # Start dev server on port 8080
-bun run dev
+npm run dev
 ```
 
 Open `http://localhost:8080`. The UI works standalone with fallback data if the backend is not running.
@@ -99,6 +99,7 @@ Open `http://localhost:8080`. The UI works standalone with fallback data if the 
 | `POST` | `/autocomplete/dismissed` | Log that a suggestion was dismissed |
 | `POST` | `/agent` | Intent classification + tool dispatch |
 | `GET` | `/reminders` | List all reminders |
+| `DELETE` | `/reminders/{id}` | Delete a reminder by ID |
 
 ## Tech stack
 

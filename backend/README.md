@@ -58,6 +58,7 @@ API docs: `http://localhost:8000/docs`
 | `POST` | `/autocomplete/dismissed` | Log dismissed suggestion |
 | `POST` | `/agent` | Intent classification + tool dispatch |
 | `GET` | `/reminders` | List all reminders |
+| `DELETE` | `/reminders/{id}` | Delete a reminder by ID |
 
 ## Directory structure
 
@@ -76,7 +77,7 @@ API docs: `http://localhost:8000/docs`
 │   ├── analytics.py             # GET /analytics/heatmap, /analytics/summary
 │   ├── autocomplete.py          # POST /autocomplete/accepted|dismissed
 │   ├── agent.py                 # POST /agent
-│   └── reminders.py             # GET /reminders
+│   └── reminders.py             # GET /reminders, DELETE /reminders/{id}
 ├── services/
 │   ├── context.py               # Time-of-day bands, context tag composer
 │   ├── vector_store.py          # ChromaDB + sentence-transformer embeddings

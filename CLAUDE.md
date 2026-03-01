@@ -25,8 +25,10 @@ Each directory has its own `CLAUDE.md` with detailed commands, architecture, and
 | `logAccepted/logDismissed(suggestion)` | `POST /autocomplete/accepted\|dismissed` |
 | `fetchHeatmap()` | `GET /analytics/heatmap` |
 | `fetchAnalyticsSummary()` | `GET /analytics/summary` |
+| `fetchLLMSuggest(partial, location)` | `POST /llm_suggest` |
 | `sendAgentMessage(message, location)` | `POST /agent` |
 | `fetchReminders()` | `GET /reminders` |
+| `deleteReminder(id)` | `DELETE /reminders/{id}` |
 
 ## Full-stack development
 
@@ -40,7 +42,7 @@ ollama serve
 
 # Terminal 3 — frontend
 cd frontend
-bun run dev          # starts on port 8080
+npm run dev          # starts on port 8080
 ```
 
 First-time setup:
@@ -56,7 +58,7 @@ ollama pull phi3              # ~2 GB download
 
 # Frontend
 cd frontend
-bun install        # or: npm install
+npm install
 ```
 
 ## Prediction pipeline (how /suggestions works)

@@ -64,7 +64,7 @@ def get_connection() -> sqlite3.Connection:
         _conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
         # Apply encryption key immediately after connect — must be the very
         # first statement before any read or write.
-        _conn.execute(f"PRAGMA key = '{_db_key}'")
+        _conn.execute("PRAGMA key = ?", (_db_key,))
         _conn.row_factory = sqlite3.Row
     return _conn
 
@@ -189,10 +189,11 @@ def insert_reminder(text: str, time: str) -> int:
 def get_reminders() -> list[dict]:
     """Return all reminders ordered by creation time, most recent first."""
     conn = get_connection()
-    cur = conn.execute(
-        "SELECT id, text, time, created_at FROM reminders ORDER BY id DESC"
-    )
-    return [dict(row) for row in cur.fetchall()]
+    with _lock:
+        cur = conn.execute(
+            "SELECT id, text, time, created_at FROM reminders ORDER BY id DESC"
+        )
+        return [dict(row) for row in cur.fetchall()]
 
 
 def delete_reminder(reminder_id: int) -> bool:

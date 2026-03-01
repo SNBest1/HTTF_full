@@ -177,3 +177,19 @@ export async function deleteReminder(id: number): Promise<boolean> {
     return false;
   }
 }
+
+export interface AppConfig {
+  locations: string[];
+  default_location: string;
+  tts_mode: string;
+}
+
+export async function fetchConfig(): Promise<AppConfig> {
+  try {
+    const res = await fetch(`${BASE_URL}/config`);
+    if (!res.ok) throw new Error("Failed");
+    return await res.json();
+  } catch {
+    return { locations: ["Home", "School", "Hospital", "Work"], default_location: "Home", tts_mode: "offline" };
+  }
+}

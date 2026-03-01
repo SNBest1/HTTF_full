@@ -9,7 +9,7 @@ import AnalyticsView from "@/components/AnalyticsView";
 import ProfileView from "@/components/ProfileView";
 import AgentView from "@/components/AgentView";
 import SOSModal from "@/components/SOSModal";
-import { fetchSuggestions, fetchLLMSuggest, logPhrase, logAccepted, logDismissed, speakText } from "@/lib/api";
+import { fetchSuggestions, fetchLLMSuggest, logPhrase, logAccepted, logDismissed, speakText, fetchConfig } from "@/lib/api";
 import type { Settings } from "@/components/SettingsMenu";
 
 const Index = () => {
@@ -39,9 +39,21 @@ const Index = () => {
     () => localStorage.getItem("aac_location") ?? "Home"
   );
 
+  const [locations, setLocations] = useState<string[]>(["Home", "School", "Hospital", "Work"]);
+
   const [pendingAgentMessage, setPendingAgentMessage] = useState<string | null>(null);
   // Set to true after speak; consumed (and reset) on the very next word/suggestion press
   const justSpoke = useRef(false);
+
+  // Fetch config from backend on mount; override default location only if nothing is persisted
+  useEffect(() => {
+    fetchConfig().then((cfg) => {
+      setLocations(cfg.locations);
+      if (!localStorage.getItem("aac_location")) {
+        setLocation(cfg.default_location);
+      }
+    });
+  }, []);
 
   // Apply settings to <html> element so CSS selectors can target them; persist to localStorage
   useEffect(() => {
@@ -146,6 +158,8 @@ const Index = () => {
     <div className="flex flex-col h-screen bg-background">
       <TopBar
         location={location}
+        locations={locations}
+        onLocationChange={setLocation}
         time={time}
         settingsOpen={settingsOpen}
         onSettingsClick={() => setSettingsOpen((o) => !o)}

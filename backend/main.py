@@ -24,6 +24,7 @@ from services.vector_store import init_vector_store
 from services.vocab import load_vocab
 from routers.tts import start_tts_worker
 from routers import phrases, suggestions, llm, tts, analytics, autocomplete, agent, reminders
+from routers.config import router as config_router
 from models.schemas import HealthResponse
 
 load_dotenv()
@@ -100,6 +101,7 @@ app.include_router(analytics.router)
 app.include_router(autocomplete.router)
 app.include_router(agent.router)
 app.include_router(reminders.router)
+app.include_router(config_router)
 
 
 # ── Health ────────────────────────────────────────────────────────────────────

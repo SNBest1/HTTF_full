@@ -14,8 +14,8 @@ A React SPA communication board for the ConnectAble AAC system. Users press symb
 ## Quick start
 
 ```bash
-bun install       # or: npm install
-bun run dev       # starts on http://localhost:8080
+npm install
+npm run dev       # starts on http://localhost:8080
 ```
 
 The UI works standalone without the backend — all API calls have graceful fallbacks.
@@ -24,11 +24,11 @@ The UI works standalone without the backend — all API calls have graceful fall
 
 | Command | Description |
 |---------|-------------|
-| `bun run dev` | Dev server on port 8080 |
-| `bun run build` | Production build |
-| `bun run lint` | ESLint |
-| `bun run test` | Run tests once (vitest) |
-| `bun run test:watch` | Run tests in watch mode |
+| `npm run dev` | Dev server on port 8080 |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run test` | Run tests once (vitest) |
+| `npm run test:watch` | Run tests in watch mode |
 
 ## Directory structure
 

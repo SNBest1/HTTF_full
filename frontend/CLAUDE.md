@@ -6,22 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Development
-bun run dev          # Start dev server on port 8080
+npm run dev          # Start dev server on port 8080
 
 # Build
-bun run build        # Production build
-bun run build:dev    # Development build
-bun run preview      # Preview production build
+npm run build        # Production build
+npm run build:dev    # Development build
+npm run preview      # Preview production build
 
 # Code quality
-bun run lint         # ESLint
+npm run lint         # ESLint
 
 # Testing
-bun run test         # Run tests once (vitest)
-bun run test:watch   # Run tests in watch mode
+npm run test         # Run tests once (vitest)
+npm run test:watch   # Run tests in watch mode
 ```
 
-To run a single test file: `bunx vitest run src/test/example.test.ts`
+To run a single test file: `npx vitest run src/test/example.test.ts`
 
 ## Architecture
 
@@ -43,6 +43,7 @@ All state lives in `src/pages/Index.tsx`. The page manages the current sentence 
 | `fetchHeatmap()` | `GET /analytics/heatmap` | 20 mock words |
 | `sendAgentMessage(message, location)` | `POST /agent` | — |
 | `fetchReminders()` | `GET /reminders` | — |
+| `deleteReminder(id)` | `DELETE /reminders/{id}` | Silent fail |
 
 ### Navigation tabs
 
@@ -93,4 +94,4 @@ The `@` alias resolves to `src/`, so imports use `@/components/...`, `@/lib/...`
 
 ### UI components
 
-`src/components/ui/` contains shadcn/ui primitives. Prefer using these existing components rather than raw HTML elements. New shadcn components can be added via `bunx shadcn@latest add <component>`.
+`src/components/ui/` contains shadcn/ui primitives. Prefer using these existing components rather than raw HTML elements. New shadcn components can be added via `npx shadcn@latest add <component>`.
