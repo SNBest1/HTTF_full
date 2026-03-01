@@ -66,8 +66,8 @@ def _parse_classification_response(raw: str) -> dict:
     except Exception:
         pass
 
-    # 3. Regex: find first {...} block in the raw output
-    match = re.search(r"\{.*?\}", raw, re.DOTALL)
+    # 3. Regex: find first {...} block in the raw output (greedy to capture full JSON object)
+    match = re.search(r"\{.*\}", raw, re.DOTALL)
     if match:
         try:
             parsed = json.loads(match.group())
@@ -109,7 +109,8 @@ class IntentClassifier:
     async def generate_reply(self, message: str, intent: str) -> str:
         """
         Generate a short conversational reply acknowledging what the agent is doing.
-        Falls back to a hardcoded string if Ollama is unavailable.
+        For action intents, returns hardcoded confirmations (faster, no prompt echo).
+        For general_chat, calls LLM with post-processing to prevent prompt echo.
         """
         FALLBACKS = {
             "make_call": "I'll connect that call for you.",
@@ -117,6 +118,11 @@ class IntentClassifier:
             "set_reminder": "Got it, reminder is set!",
             "general_chat": "I'm here to help.",
         }
+        # For action intents, skip the LLM entirely — use reliable confirmations
+        if intent != "general_chat":
+            return FALLBACKS[intent]
+
+        # For general_chat, call LLM but sanitize the output
         try:
             client = ollama.AsyncClient()
             response = await client.chat(
@@ -126,7 +132,20 @@ class IntentClassifier:
                     {"role": "user", "content": f"Message: '{message}'. Intent: '{intent}'."},
                 ],
             )
-            reply = response.message.content.strip()
-            return reply if reply else FALLBACKS.get(intent, "Done.")
+            raw = response.message.content.strip()
+
+            # Take only the first sentence to prevent multi-paragraph dumps
+            first_sentence = re.split(r"[.!?]", raw)[0].strip()
+
+            # Reject if too long (prompt echo) or contains system prompt leakage
+            _LEAKAGE_KEYWORDS = ("AAC", "classify", "intent", "JSON", "ONLY", "entities")
+            if (
+                not first_sentence
+                or len(first_sentence) > 150
+                or any(kw in first_sentence for kw in _LEAKAGE_KEYWORDS)
+            ):
+                return FALLBACKS["general_chat"]
+
+            return first_sentence
         except Exception:
-            return FALLBACKS.get(intent, "Done.")
+            return FALLBACKS["general_chat"]
