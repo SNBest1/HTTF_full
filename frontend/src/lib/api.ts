@@ -28,14 +28,14 @@ export async function logPhrase(phrase: string, location: string): Promise<void>
     await fetch(`${BASE_URL}/log_phrase`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phrase, location, timestamp: new Date().toISOString() }),
+      body: JSON.stringify({ phrase, location }),
     });
   } catch {
     // silent fail
   }
 }
 
-export async function logAccepted(suggestion: string, partial: string, location: string): Promise<void> {
+export async function logAccepted(suggestion: string): Promise<void> {
   try {
     await fetch(`${BASE_URL}/autocomplete/accepted`, {
       method: "POST",
@@ -48,7 +48,7 @@ export async function logAccepted(suggestion: string, partial: string, location:
 }
 
 
-export async function logDismissed(suggestion: string, partial: string, location: string): Promise<void> {
+export async function logDismissed(suggestion: string): Promise<void> {
   try {
     await fetch(`${BASE_URL}/autocomplete/dismissed`, {
       method: "POST",
@@ -67,6 +67,18 @@ export async function speakText(text: string): Promise<void> {
     body: JSON.stringify({ text }),
   });
   if (!res.ok) throw new Error("TTS failed");
+  const contentType = res.headers.get("Content-Type") ?? "";
+  if (contentType.includes("audio/")) {
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    await new Promise<void>((resolve, reject) => {
+      audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+      audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Audio playback failed")); };
+      audio.play().catch(reject);
+    });
+  }
+  // offline mode: backend speaks via system TTS; nothing for the browser to play
 }
 
 export interface HeatmapEntry {
@@ -76,6 +88,7 @@ export interface HeatmapEntry {
 
 export interface AnalyticsSummary {
   total_phrases: number;
+  total_suggestions: number;
   acceptance_rate: number;
   top_phrases: string[];
   top_locations: Record<string, number>;

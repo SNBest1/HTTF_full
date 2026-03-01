@@ -10,7 +10,7 @@ from typing import Literal
 # ── Phrases ──────────────────────────────────────────────────────────────────
 
 class LogPhraseRequest(BaseModel):
-    phrase: str = Field(..., min_length=1, description="The spoken/selected phrase")
+    phrase: str = Field(..., min_length=1, max_length=500, description="The spoken/selected phrase")
     location: str = Field(default="Home", description="Current user location")
 
 
@@ -44,7 +44,7 @@ class LLMSuggestResponse(BaseModel):
 # ── TTS ───────────────────────────────────────────────────────────────────────
 
 class SpeakRequest(BaseModel):
-    text: str = Field(..., min_length=1)
+    text: str = Field(..., min_length=1, max_length=1000)
     mode: Literal["offline", "elevenlabs"] | None = Field(
         default=None,
         description="Override tts_mode from user_config.json",
@@ -54,7 +54,7 @@ class SpeakRequest(BaseModel):
 # ── Autocomplete ──────────────────────────────────────────────────────────────
 
 class AutocompleteRequest(BaseModel):
-    suggested_phrase: str = Field(..., min_length=1)
+    suggested_phrase: str = Field(..., min_length=1, max_length=500)
 
 
 class AutocompleteResponse(BaseModel):
@@ -91,7 +91,7 @@ class HealthResponse(BaseModel):
 # ── Agent / Intent Router ─────────────────────────────────────────────────────
 
 class AgentRequest(BaseModel):
-    message: str = Field(..., min_length=1, description="User's natural language message to the agent")
+    message: str = Field(..., min_length=1, max_length=2000, description="User's natural language message to the agent")
     location: str = Field(default="Home", description="Current user location for context")
 
 

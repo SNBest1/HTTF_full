@@ -12,7 +12,7 @@ const AACGrid = ({ onButtonPress }: AACGridProps) => {
           const colors = categoryColors[btn.category];
           return (
             <button
-              key={i}
+              key={btn.label}
               onClick={() => onButtonPress(btn.label)}
               className={`aac-grid-btn ${colors.bg} ${colors.border} border`}
               aria-label={btn.label}

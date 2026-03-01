@@ -55,9 +55,7 @@ async def get_suggestions(
             source = "empty"
 
     # If we have bigram predictions alongside vector/llm results, label as "vocab"
-    if next_words and source == "vector":
-        source = "vector"  # vector takes precedence in label
-    elif next_words and source == "empty":
+    if next_words and source == "empty":
         source = "vocab"
 
     # Re-rank by historical acceptance rate (closes the autocomplete feedback loop).

@@ -5,7 +5,7 @@ and time-of-day bands. Run once via:  python -m data.seed_phrases
 The function is idempotent — it skips seeding if any phrases already exist.
 """
 
-from db.database import init_db, insert_phrase, count_phrases
+from db.database import init_db, insert_phrase, count_phrases, load_db_key
 
 SEED_PHRASES: list[tuple[str, str, int]] = [
     # (phrase, location, hour_of_day)
@@ -32,6 +32,7 @@ SEED_PHRASES: list[tuple[str, str, int]] = [
 
 
 def seed() -> None:
+    load_db_key()
     init_db()
     if count_phrases() > 0:
         print("Database already has phrases — skipping seed.")

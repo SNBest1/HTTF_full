@@ -9,6 +9,7 @@ Critical design notes:
 """
 
 import hashlib
+from pathlib import Path
 from typing import Optional
 
 import chromadb
@@ -16,7 +17,7 @@ from chromadb import Collection
 from sentence_transformers import SentenceTransformer
 
 COLLECTION_NAME = "aac_phrases"
-CHROMA_PATH = "./chroma_db"
+CHROMA_PATH = str(Path(__file__).parent.parent / "chroma_db")
 EMBED_MODEL = "all-MiniLM-L6-v2"
 
 _client: Optional[chromadb.PersistentClient] = None
@@ -87,42 +88,38 @@ def query_similar(
     if count == 0:
         return []
 
-    # Critical guard: clamp n_results to collection size
-    safe_n = min(n_results, count)
+    # Query for more candidates than needed so Python-side location filtering
+    # always has enough results.  Never pass where_filter to ChromaDB —
+    # ChromaDB raises InvalidArgumentError when location-matching docs <
+    # n_results (because HNSW pre-fetches n_results before applying the filter).
+    safe_n = min(n_results * 2, count)
 
     embedding = _embedder.encode(query_text).tolist()
-
-    where_filter = {"location": location} if location else None
 
     results = _collection.query(
         query_embeddings=[embedding],
         n_results=safe_n,
-        where=where_filter,
-        include=["documents"],
+        where=None,
+        include=["documents", "metadatas"],
     )
 
-    docs: list[str] = results.get("documents", [[]])[0]
+    docs_and_meta = list(zip(
+        results.get("documents", [[]])[0],
+        results.get("metadatas", [[]])[0],
+    ))
 
-    # Cross-location fallback: if the location filter yields thin results,
-    # supplement with a global (unfiltered) query so new locations always
-    # get meaningful suggestions.
-    if location and len(docs) < 3:
-        global_results = _collection.query(
-            query_embeddings=[embedding],
-            n_results=safe_n,
-            where=None,
-            include=["documents"],
-        )
-        global_docs: list[str] = global_results.get("documents", [[]])[0]
-        seen = set(docs)
-        for d in global_docs:
-            if d not in seen:
-                docs.append(d)
-                seen.add(d)
-                if len(docs) >= n_results:
-                    break
+    if location:
+        # Prefer location-matched phrases; fall back to globally-ranked results
+        # when the current location has fewer than 3 matching docs.
+        location_docs = [doc for doc, meta in docs_and_meta
+                         if meta.get("location") == location]
+        if len(location_docs) >= 3:
+            return location_docs[:n_results]
+        other_docs = [doc for doc, meta in docs_and_meta
+                      if meta.get("location") != location]
+        return (location_docs + other_docs)[:n_results]
 
-    return docs[:n_results]
+    return [doc for doc, _ in docs_and_meta][:n_results]
 
 
 def get_collection_count() -> int:

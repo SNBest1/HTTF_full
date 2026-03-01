@@ -10,7 +10,7 @@ const SuggestionRow = ({ suggestions, onSelect }: SuggestionRowProps) => {
     <div className="flex gap-3 px-4 py-3 overflow-x-auto">
       {suggestions.map((s, i) => (
         <button
-          key={`${s}-${i}`}
+          key={s}
           onClick={() => onSelect(s)}
           className="suggestion-pill flex items-center gap-2 whitespace-nowrap animate-fade-in"
           style={{ animationDelay: `${i * 80}ms` }}

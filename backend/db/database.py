@@ -8,6 +8,7 @@ at startup by load_db_key() and applied via PRAGMA key immediately after every
 connect().  The LLM always receives plaintext — encryption is data-at-rest only.
 """
 
+import re
 import threading
 from pathlib import Path
 
@@ -47,6 +48,12 @@ def load_db_key() -> None:
     _db_key = _KEY_PATH.read_text().strip()
     if not _db_key:
         raise ValueError(f"Database key file is empty: {_KEY_PATH}")
+    if not re.fullmatch(r'[0-9a-fA-F]+', _db_key):
+        raise ValueError(
+            f"Database key in {_KEY_PATH} must be a hex string. "
+            "Re-generate with: python3 -c \"import secrets; print(secrets.token_hex(32))\" "
+            f"> {_KEY_PATH} && chmod 0600 {_KEY_PATH}"
+        )
 
 
 def get_connection() -> sqlite3.Connection:
@@ -111,17 +118,19 @@ def insert_phrase(phrase: str, location: str, hour_of_day: int) -> int:
 def get_all_phrases() -> list[dict]:
     """Return all phrase logs as a list of dicts."""
     conn = get_connection()
-    cur = conn.execute(
-        "SELECT id, phrase, timestamp, location, hour_of_day FROM phrase_logs ORDER BY id"
-    )
-    return [dict(row) for row in cur.fetchall()]
+    with _lock:
+        cur = conn.execute(
+            "SELECT id, phrase, timestamp, location, hour_of_day FROM phrase_logs ORDER BY id"
+        )
+        return [dict(row) for row in cur.fetchall()]
 
 
 def count_phrases() -> int:
     """Return total number of logged phrases."""
     conn = get_connection()
-    cur = conn.execute("SELECT COUNT(*) FROM phrase_logs")
-    return cur.fetchone()[0]
+    with _lock:
+        cur = conn.execute("SELECT COUNT(*) FROM phrase_logs")
+        return cur.fetchone()[0]
 
 
 def insert_autocomplete_log(suggested_phrase: str, was_accepted: bool) -> None:
@@ -138,13 +147,14 @@ def insert_autocomplete_log(suggested_phrase: str, was_accepted: bool) -> None:
 def get_autocomplete_stats() -> tuple[int, int]:
     """Return (total_suggestions, total_accepted) counts."""
     conn = get_connection()
-    cur = conn.execute(
-        "SELECT COUNT(*) AS total, SUM(was_accepted) AS accepted FROM autocomplete_logs"
-    )
-    row = cur.fetchone()
-    total = row["total"] or 0
-    accepted = row["accepted"] or 0
-    return total, accepted
+    with _lock:
+        cur = conn.execute(
+            "SELECT COUNT(*) AS total, SUM(was_accepted) AS accepted FROM autocomplete_logs"
+        )
+        row = cur.fetchone()
+        total = row["total"] or 0
+        accepted = row["accepted"] or 0
+        return total, accepted
 
 
 def get_phrase_acceptance_scores() -> dict[str, float]:

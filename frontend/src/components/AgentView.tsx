@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { sendAgentMessage, fetchReminders, deleteReminder, AgentResponse, ReminderItem } from "@/lib/api";
 
 interface Message {
+  id: number;
   role: "user" | "agent";
   text: string;
   timestamp: Date;
@@ -116,8 +117,12 @@ const SUGGESTIONS = [
 ];
 
 const AgentView = ({ location, pendingMessage, onPendingConsumed }: AgentViewProps) => {
+  // Monotonically increasing ID counter for stable message keys
+  const nextMsgId = useRef(1);
+
   const [messages, setMessages] = useState<Message[]>([
     {
+      id: 0,
       role: "agent",
       text: "Hi! I can make calls, order food, set reminders, or just chat. How can I help?",
       timestamp: new Date(),
@@ -136,14 +141,6 @@ const AgentView = ({ location, pendingMessage, onPendingConsumed }: AgentViewPro
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-send pending message from AAC board
-  useEffect(() => {
-    if (pendingMessage) {
-      handleSend(pendingMessage);
-      onPendingConsumed?.();
-    }
-  }, [pendingMessage]);
-
   const refreshReminders = () => {
     fetchReminders().then(setReminders);
   };
@@ -152,7 +149,7 @@ const AgentView = ({ location, pendingMessage, onPendingConsumed }: AgentViewPro
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
-    const userMsg: Message = { role: "user", text: trimmed, timestamp: new Date() };
+    const userMsg: Message = { id: nextMsgId.current++, role: "user", text: trimmed, timestamp: new Date() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
@@ -160,6 +157,7 @@ const AgentView = ({ location, pendingMessage, onPendingConsumed }: AgentViewPro
     const agentResponse = await sendAgentMessage(trimmed, location);
 
     const agentMsg: Message = {
+      id: nextMsgId.current++,
       role: "agent",
       text: agentResponse.reply,
       timestamp: new Date(),
@@ -172,6 +170,20 @@ const AgentView = ({ location, pendingMessage, onPendingConsumed }: AgentViewPro
       refreshReminders();
     }
   };
+
+  // Keep a ref to the latest handleSend so the pending-message effect always
+  // calls the current closure without adding handleSend to its dep array
+  // (which would cause infinite re-runs since it's not memoised).
+  const handleSendRef = useRef(handleSend);
+  handleSendRef.current = handleSend;
+
+  // Auto-send pending message from AAC board
+  useEffect(() => {
+    if (pendingMessage) {
+      handleSendRef.current(pendingMessage);
+      onPendingConsumed?.();
+    }
+  }, [pendingMessage, onPendingConsumed]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -247,9 +259,9 @@ const AgentView = ({ location, pendingMessage, onPendingConsumed }: AgentViewPro
 
         <ScrollArea className="flex-1 px-4 py-3" style={{ maxHeight: 300 }}>
           <div className="space-y-3">
-            {messages.map((msg, i) => (
+            {messages.map((msg) => (
               <div
-                key={i}
+                key={msg.id}
                 className={`flex flex-col gap-0.5 ${msg.role === "user" ? "items-end" : "items-start"}`}
               >
                 {msg.role === "agent" ? (

@@ -27,7 +27,9 @@ def _format_price(cents: int) -> str:
 
 
 def handle(entities: dict, reply: str) -> AgentResponse:
-    requested: list[str] = entities.get("items", [])
+    requested = entities.get("items", [])
+    if not isinstance(requested, list):
+        requested = [str(requested)]
     if not requested:
         requested = ["sandwich"]
 

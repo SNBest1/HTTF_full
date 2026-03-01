@@ -28,9 +28,16 @@ if not KEY_PATH.exists():
           f'> {KEY_PATH} && chmod 0600 {KEY_PATH}')
     sys.exit(1)
 
+import re
+
 passphrase = KEY_PATH.read_text().strip()
 if not passphrase:
     print(f"ERROR: Key file is empty: {KEY_PATH}")
+    sys.exit(1)
+if not re.fullmatch(r'[0-9a-fA-F]+', passphrase):
+    print(f"ERROR: Key file contains non-hex characters: {KEY_PATH}")
+    print('Re-generate with: python3 -c "import secrets; print(secrets.token_hex(32))" '
+          f'> {KEY_PATH} && chmod 0600 {KEY_PATH}')
     sys.exit(1)
 
 # Backup original

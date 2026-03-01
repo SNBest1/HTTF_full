@@ -9,7 +9,7 @@ Pipeline:
   3. Embed each unique phrase into ChromaDB
 """
 
-from db.database import init_db, get_all_phrases
+from db.database import init_db, get_all_phrases, load_db_key
 from services.vocab import build_vocab_from_phrases, save_vocab, load_vocab
 from services.vector_store import init_vector_store, embed_and_store
 from services.context import get_context_tag
@@ -20,6 +20,7 @@ def run_training() -> dict:
     Execute the full training pipeline.
     Returns a summary dict with phrase count and embed stats.
     """
+    load_db_key()
     print("[train] Starting nightly training pipeline...")
 
     init_db()

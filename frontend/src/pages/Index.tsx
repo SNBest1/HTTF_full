@@ -59,7 +59,15 @@ const Index = () => {
     localStorage.setItem("aac_location", location);
   }, [location]);
 
-  const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const [time, setTime] = useState(() =>
+    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  );
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Re-fetch suggestions as the sentence or location changes (debounced)
   useEffect(() => {
@@ -80,7 +88,7 @@ const Index = () => {
   }, []);
 
   const addSuggestion = useCallback((text: string) => {
-    logAccepted(text, sentence, location);
+    logAccepted(text);
     const isPhrase = text.trim().includes(" ");
     if (justSpoke.current || isPhrase) {
       justSpoke.current = false;
@@ -129,7 +137,7 @@ const Index = () => {
         speechSynthesis.speak(u);
       }
     }
-    suggestions.forEach((s) => logDismissed(s, sentence, location));
+    suggestions.forEach((s) => logDismissed(s));
     await logPhrase(sentence, location);
     justSpoke.current = true;
   }, [sentence, suggestions, location]);

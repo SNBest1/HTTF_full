@@ -9,8 +9,8 @@ from db.database import insert_reminder
 
 
 def handle(entities: dict, reply: str) -> AgentResponse:
-    text = entities.get("text", "Reminder").strip()
-    time_str = entities.get("time", "").strip()
+    text = str(entities.get("text", "Reminder")).strip()
+    time_str = str(entities.get("time", "")).strip()
 
     row_id = insert_reminder(text=text, time=time_str)
 

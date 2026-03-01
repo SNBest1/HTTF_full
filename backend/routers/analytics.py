@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from collections import Counter
 
 from models.schemas import HeatmapResponse, HeatmapEntry, SummaryResponse
-from db.database import get_all_phrases, count_phrases, get_autocomplete_stats
+from db.database import get_all_phrases, get_autocomplete_stats
 
 router = APIRouter(prefix="/analytics")
 
@@ -29,7 +29,7 @@ def get_heatmap() -> HeatmapResponse:
 @router.get("/summary", response_model=SummaryResponse)
 def get_summary() -> SummaryResponse:
     phrases = get_all_phrases()
-    total = count_phrases()
+    total = len(phrases)
     total_suggestions, accepted = get_autocomplete_stats()
 
     acceptance_rate = (accepted / total_suggestions) if total_suggestions > 0 else 0.0

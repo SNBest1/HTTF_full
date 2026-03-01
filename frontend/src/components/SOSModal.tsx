@@ -14,11 +14,6 @@ interface SOSModalProps {
 }
 
 const SOSModal = ({ open, onClose }: SOSModalProps) => {
-  const handleNotifyContacts = () => {
-    alert("Emergency contacts have been notified.");
-    onClose();
-  };
-
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
@@ -49,11 +44,11 @@ const SOSModal = ({ open, onClose }: SOSModalProps) => {
           <Button
             variant="outline"
             size="lg"
-            className="w-full text-lg font-bold gap-2 py-6 border-destructive text-destructive hover:bg-destructive/10"
-            onClick={handleNotifyContacts}
+            className="w-full text-lg font-bold gap-2 py-6 border-muted text-muted-foreground"
+            disabled
           >
             <Users size={22} />
-            Notify Emergency Contacts
+            Notify Contacts (Coming Soon)
           </Button>
 
           <Button
