@@ -23,12 +23,27 @@ const Index = () => {
   const [llmLoading, setLlmLoading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
-  const [settings, setSettings] = useState<Settings>({ theme: "dark", dyslexia: false, highContrast: false });
+
+  // Persist settings across sessions
+  const [settings, setSettings] = useState<Settings>(() => {
+    try {
+      const saved = localStorage.getItem("aac_settings");
+      return saved ? (JSON.parse(saved) as Settings) : { theme: "dark", dyslexia: false, highContrast: false };
+    } catch {
+      return { theme: "dark", dyslexia: false, highContrast: false };
+    }
+  });
+
+  // Persist last-used location across sessions
+  const [location, setLocation] = useState<string>(
+    () => localStorage.getItem("aac_location") ?? "Home"
+  );
+
   const [pendingAgentMessage, setPendingAgentMessage] = useState<string | null>(null);
   // Set to true after speak; consumed (and reset) on the very next word/suggestion press
   const justSpoke = useRef(false);
 
-  // Apply settings to <html> element so CSS selectors can target them
+  // Apply settings to <html> element so CSS selectors can target them; persist to localStorage
   useEffect(() => {
     const html = document.documentElement;
     html.setAttribute("data-theme", settings.theme);
@@ -36,18 +51,23 @@ const Index = () => {
     else html.removeAttribute("data-dyslexia");
     if (settings.highContrast) html.setAttribute("data-contrast", "high");
     else html.removeAttribute("data-contrast");
+    localStorage.setItem("aac_settings", JSON.stringify(settings));
   }, [settings]);
 
-  const location = "Home";
+  // Persist location whenever it changes
+  useEffect(() => {
+    localStorage.setItem("aac_location", location);
+  }, [location]);
+
   const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  // Re-fetch suggestions as the sentence changes (debounced)
+  // Re-fetch suggestions as the sentence or location changes (debounced)
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchSuggestions(location, sentence).then(setSuggestions);
     }, 400);
     return () => clearTimeout(timer);
-  }, [sentence]);
+  }, [sentence, location]);
 
   const addWord = useCallback((word: string) => {
     const isPhrase = word.trim().includes(" ");
@@ -96,7 +116,7 @@ const Index = () => {
     } finally {
       setLlmLoading(false);
     }
-  }, [sentence]);
+  }, [sentence, location]);
 
   const handleSpeak = useCallback(async () => {
     if (!sentence.trim()) return;
@@ -112,7 +132,7 @@ const Index = () => {
     suggestions.forEach((s) => logDismissed(s, sentence, location));
     await logPhrase(sentence, location);
     justSpoke.current = true;
-  }, [sentence, suggestions]);
+  }, [sentence, suggestions, location]);
 
   return (
     <div className="flex flex-col h-screen bg-background">

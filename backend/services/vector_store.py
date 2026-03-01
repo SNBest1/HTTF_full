@@ -102,7 +102,27 @@ def query_similar(
     )
 
     docs: list[str] = results.get("documents", [[]])[0]
-    return docs
+
+    # Cross-location fallback: if the location filter yields thin results,
+    # supplement with a global (unfiltered) query so new locations always
+    # get meaningful suggestions.
+    if location and len(docs) < 3:
+        global_results = _collection.query(
+            query_embeddings=[embedding],
+            n_results=safe_n,
+            where=None,
+            include=["documents"],
+        )
+        global_docs: list[str] = global_results.get("documents", [[]])[0]
+        seen = set(docs)
+        for d in global_docs:
+            if d not in seen:
+                docs.append(d)
+                seen.add(d)
+                if len(docs) >= n_results:
+                    break
+
+    return docs[:n_results]
 
 
 def get_collection_count() -> int:

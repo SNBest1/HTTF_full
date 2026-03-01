@@ -147,6 +147,21 @@ def get_autocomplete_stats() -> tuple[int, int]:
     return total, accepted
 
 
+def get_phrase_acceptance_scores() -> dict[str, float]:
+    """Return a mapping of suggested_phrase → acceptance rate (0.0–1.0)."""
+    conn = get_connection()
+    with _lock:
+        cur = conn.execute(
+            """
+            SELECT suggested_phrase,
+                   CAST(SUM(was_accepted) AS FLOAT) / COUNT(*) AS score
+            FROM autocomplete_logs
+            GROUP BY suggested_phrase
+            """
+        )
+        return {row["suggested_phrase"]: row["score"] for row in cur.fetchall()}
+
+
 # ── reminders helpers ─────────────────────────────────────────────────────────
 
 def insert_reminder(text: str, time: str) -> int:

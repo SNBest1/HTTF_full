@@ -1,9 +1,15 @@
 import { User } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
+import { fetchAnalyticsSummary, type AnalyticsSummary } from "@/lib/api";
 
 const ProfileView = () => {
   const [voiceClone, setVoiceClone] = useState(false);
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+
+  useEffect(() => {
+    fetchAnalyticsSummary().then(setSummary);
+  }, []);
 
   return (
     <div className="flex-1 overflow-auto p-4 space-y-5">
@@ -36,12 +42,16 @@ const ProfileView = () => {
         <h3 className="font-semibold text-foreground mb-3">This Week</h3>
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-secondary rounded-lg p-4 text-center">
-            <div className="text-3xl font-extrabold text-primary">24</div>
-            <div className="text-xs text-muted-foreground mt-1">Learned Phrases</div>
+            <div className="text-3xl font-extrabold text-primary">
+              {summary ? summary.total_phrases : "—"}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Phrases Logged</div>
           </div>
           <div className="bg-secondary rounded-lg p-4 text-center">
-            <div className="text-3xl font-extrabold text-primary">142</div>
-            <div className="text-xs text-muted-foreground mt-1">Words Spoken</div>
+            <div className="text-3xl font-extrabold text-primary">
+              {summary ? `${Math.round(summary.acceptance_rate * 100)}%` : "—"}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">AI Accept Rate</div>
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ from models.schemas import SuggestionsResponse
 from services.vocab import predict_next_words
 from services.vector_store import query_similar, get_collection_count
 from services.context import get_context_tag, get_current_hour
+from db.database import get_phrase_acceptance_scores
 
 router = APIRouter()
 
@@ -58,5 +59,11 @@ async def get_suggestions(
         source = "vector"  # vector takes precedence in label
     elif next_words and source == "empty":
         source = "vocab"
+
+    # Re-rank by historical acceptance rate (closes the autocomplete feedback loop).
+    # Phrases the user has previously accepted are boosted; new phrases get a neutral
+    # score of 0.5 so they remain visible until feedback is collected.
+    scores = get_phrase_acceptance_scores()
+    predictions.sort(key=lambda p: scores.get(p, 0.5), reverse=True)
 
     return SuggestionsResponse(predictions=predictions[:8], source=source)
