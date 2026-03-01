@@ -10,6 +10,6 @@ venv/
 .idea/
 backend/aac.key
 .claude/
-featurestoadd.md
+featuretoadd.md
 issues.md
-presnetation.md 
+presentation.md 
