@@ -155,3 +155,12 @@ export async function fetchReminders(): Promise<ReminderItem[]> {
     return [];
   }
 }
+
+export async function deleteReminder(id: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE_URL}/reminders/${id}`, { method: "DELETE" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

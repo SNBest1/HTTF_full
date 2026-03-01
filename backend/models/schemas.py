@@ -117,3 +117,8 @@ class ReminderItem(BaseModel):
 
 class RemindersResponse(BaseModel):
     reminders: list[ReminderItem]
+
+
+class DeleteReminderResponse(BaseModel):
+    deleted: bool
+    id: int

@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, Sparkles, Bot, Send, Loader2, Phone, ShoppingBag, Clock } from "lucide-react";
+import { Bell, Sparkles, Bot, Send, Loader2, Phone, ShoppingBag, Clock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { sendAgentMessage, fetchReminders, AgentResponse, ReminderItem } from "@/lib/api";
+import { sendAgentMessage, fetchReminders, deleteReminder, AgentResponse, ReminderItem } from "@/lib/api";
 
 interface Message {
   role: "user" | "agent";
@@ -194,11 +194,24 @@ const AgentView = ({ location, pendingMessage, onPendingConsumed }: AgentViewPro
             <span className="text-xs text-muted-foreground">No reminders yet. Ask the agent to set one!</span>
           )}
           {reminders.map((r) => (
-            <div key={r.id} className="flex items-center gap-2">
-              <Badge variant="secondary" className="shrink-0 text-xs">
-                {r.time || "Anytime"}
-              </Badge>
-              <span className="text-sm text-foreground">{r.text}</span>
+            <div key={r.id} className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Badge variant="secondary" className="shrink-0 text-xs">
+                  {r.time || "Anytime"}
+                </Badge>
+                <span className="text-sm text-foreground truncate">{r.text}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 text-xs h-7"
+                onClick={async () => {
+                  await deleteReminder(r.id);
+                  refreshReminders();
+                }}
+              >
+                <Trash2 size={12} />
+              </Button>
             </div>
           ))}
         </div>

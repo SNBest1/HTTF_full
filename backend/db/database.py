@@ -168,3 +168,12 @@ def get_reminders() -> list[dict]:
         "SELECT id, text, time, created_at FROM reminders ORDER BY id DESC"
     )
     return [dict(row) for row in cur.fetchall()]
+
+
+def delete_reminder(reminder_id: int) -> bool:
+    """Delete a reminder by id. Returns True if a row was deleted."""
+    conn = get_connection()
+    with _lock:
+        cur = conn.execute("DELETE FROM reminders WHERE id = ?", (reminder_id,))
+        conn.commit()
+        return cur.rowcount > 0
