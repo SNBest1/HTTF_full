@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import TopBar from "@/components/TopBar";
 import SuggestionRow from "@/components/SuggestionRow";
@@ -18,6 +18,8 @@ const Index = () => {
     "Can you help me?",
   ]);
   const [llmLoading, setLlmLoading] = useState(false);
+  // Set to true after speak; consumed (and reset) on the very next word/suggestion press
+  const justSpoke = useRef(false);
 
   const location = "Home";
   const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -31,12 +33,23 @@ const Index = () => {
   }, [sentence]);
 
   const addWord = useCallback((word: string) => {
-    setSentence((s) => (s ? `${s} ${word}` : word));
+    if (justSpoke.current) {
+      justSpoke.current = false;
+      setSentence(word);
+    } else {
+      setSentence((s) => (s ? `${s} ${word}` : word));
+    }
   }, []);
 
   const addSuggestion = useCallback((text: string) => {
     logAccepted(text, sentence, location);
-    setSentence((prev) => (prev ? `${prev} ${text}` : text));
+    const isPhrase = text.trim().includes(" ");
+    if (justSpoke.current || isPhrase) {
+      justSpoke.current = false;
+      setSentence(text);
+    } else {
+      setSentence((prev) => (prev ? `${prev} ${text}` : text));
+    }
   }, [sentence, location]);
 
   const handleBackspace = useCallback(() => {
@@ -70,9 +83,9 @@ const Index = () => {
         speechSynthesis.speak(u);
       }
     }
-    // If the user spoke their own phrase (not from suggestions), log it as dismissed for each current suggestion
     suggestions.forEach((s) => logDismissed(s, sentence, location));
     await logPhrase(sentence, location);
+    justSpoke.current = true;
   }, [sentence, suggestions]);
 
   return (

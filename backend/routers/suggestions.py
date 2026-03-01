@@ -42,23 +42,12 @@ async def get_suggestions(
     else:
         # Layer 3 — LLM fallback
         try:
-            from services.llm_service import call_ollama, build_system_prompt
-            import json as _json
+            from services.llm_service import call_ollama, build_system_prompt, parse_llm_suggestions
 
             context_tag = get_context_tag(location, get_current_hour())
             system_prompt = build_system_prompt(location, context_tag)
             raw = await call_ollama(system_prompt=system_prompt, partial_input=partial)
-
-            # Try to parse JSON list from LLM output
-            try:
-                llm_suggestions = _json.loads(raw)
-                if isinstance(llm_suggestions, list):
-                    predictions.extend(str(s) for s in llm_suggestions[:3])
-            except Exception:
-                # LLM returned plain text — split by newline
-                lines = [l.strip("- •\n").strip() for l in raw.splitlines() if l.strip()]
-                predictions.extend(lines[:3])
-
+            predictions.extend(parse_llm_suggestions(raw, max_items=3))
             source = "llm"
         except Exception as exc:
             print(f"[suggestions] LLM fallback failed: {exc}")
