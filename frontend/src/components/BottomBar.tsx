@@ -1,14 +1,16 @@
-import { Volume2, Delete, Trash2 } from "lucide-react";
+import { Volume2, Delete, Trash2, Bot } from "lucide-react";
 import { useState } from "react";
 
 interface BottomBarProps {
   sentence: string;
+  onSentenceChange: (text: string) => void;
   onSpeak: () => Promise<void>;
   onBackspace: () => void;
   onClear: () => void;
+  onSendToAgent: () => void;
 }
 
-const BottomBar = ({ sentence, onSpeak, onBackspace, onClear }: BottomBarProps) => {
+const BottomBar = ({ sentence, onSentenceChange, onSpeak, onBackspace, onClear, onSendToAgent }: BottomBarProps) => {
   const [speaking, setSpeaking] = useState(false);
 
   const handleSpeak = async () => {
@@ -23,9 +25,13 @@ const BottomBar = ({ sentence, onSpeak, onBackspace, onClear }: BottomBarProps) 
 
   return (
     <div className="flex items-center gap-2 px-3 py-2.5 bg-card border-t border-border">
-      <div className="flex-1 min-h-[44px] flex items-center px-4 py-2 rounded-xl bg-sentence text-foreground font-medium text-lg truncate">
-        {sentence || <span className="text-muted-foreground italic">Tap symbols to build a sentence…</span>}
-      </div>
+      <input
+        type="text"
+        value={sentence}
+        onChange={(e) => onSentenceChange(e.target.value)}
+        placeholder="Tap symbols or type here…"
+        className="flex-1 min-h-[44px] px-4 py-2 rounded-xl bg-sentence text-foreground font-medium text-lg outline-none placeholder:text-muted-foreground placeholder:italic placeholder:font-normal"
+      />
 
       <button
         onClick={onBackspace}
@@ -44,9 +50,19 @@ const BottomBar = ({ sentence, onSpeak, onBackspace, onClear }: BottomBarProps) 
       </button>
 
       <button
+        onClick={onSendToAgent}
+        disabled={!sentence.trim()}
+        className="shrink-0 p-3 rounded-xl bg-primary/20 hover:bg-primary/30 transition-colors disabled:opacity-40"
+        aria-label="Send to Agent"
+        title="Send to Agent"
+      >
+        <Bot size={22} className="text-primary" />
+      </button>
+
+      <button
         onClick={handleSpeak}
         disabled={speaking || !sentence.trim()}
-        className={`shrink-0 px-5 py-3 rounded-xl bg-speak font-bold text-speak-foreground flex items-center gap-2 
+        className={`shrink-0 px-5 py-3 rounded-xl bg-speak font-bold text-speak-foreground flex items-center gap-2
           transition-all disabled:opacity-40 ${speaking ? "speak-pulse" : "hover:brightness-110 active:scale-95"}`}
         aria-label="Speak"
       >

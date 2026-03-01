@@ -24,6 +24,7 @@ const Index = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
   const [settings, setSettings] = useState<Settings>({ theme: "dark", dyslexia: false, highContrast: false });
+  const [pendingAgentMessage, setPendingAgentMessage] = useState<string | null>(null);
   // Set to true after speak; consumed (and reset) on the very next word/suggestion press
   const justSpoke = useRef(false);
 
@@ -49,7 +50,8 @@ const Index = () => {
   }, [sentence]);
 
   const addWord = useCallback((word: string) => {
-    if (justSpoke.current) {
+    const isPhrase = word.trim().includes(" ");
+    if (justSpoke.current || isPhrase) {
       justSpoke.current = false;
       setSentence(word);
     } else {
@@ -77,6 +79,14 @@ const Index = () => {
   }, []);
 
   const handleClear = useCallback(() => setSentence(""), []);
+
+  const handleSendToAgent = useCallback(() => {
+    if (!sentence.trim()) return;
+    setPendingAgentMessage(sentence);
+    setTab("agent");
+    setSentence("");
+    justSpoke.current = false;
+  }, [sentence]);
 
   const handleAISuggest = useCallback(async () => {
     setLlmLoading(true);
@@ -136,16 +146,24 @@ const Index = () => {
           <AACGrid onButtonPress={addWord} />
           <BottomBar
             sentence={sentence}
+            onSentenceChange={setSentence}
             onSpeak={handleSpeak}
             onBackspace={handleBackspace}
             onClear={handleClear}
+            onSendToAgent={handleSendToAgent}
           />
         </>
       )}
 
       {tab === "analytics" && <AnalyticsView />}
       {tab === "profile" && <ProfileView />}
-      {tab === "agent" && <AgentView location={location} />}
+      {tab === "agent" && (
+        <AgentView
+          location={location}
+          pendingMessage={pendingAgentMessage}
+          onPendingConsumed={() => setPendingAgentMessage(null)}
+        />
+      )}
 
       <NavTabs active={tab} onChange={setTab} />
     </div>

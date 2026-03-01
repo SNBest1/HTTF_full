@@ -15,6 +15,8 @@ interface Message {
 
 interface AgentViewProps {
   location: string;
+  pendingMessage?: string | null;
+  onPendingConsumed?: () => void;
 }
 
 // ── Action card sub-components ────────────────────────────────────────────────
@@ -113,7 +115,7 @@ const SUGGESTIONS = [
   "Remind me to take medication at 9 AM",
 ];
 
-const AgentView = ({ location }: AgentViewProps) => {
+const AgentView = ({ location, pendingMessage, onPendingConsumed }: AgentViewProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "agent",
@@ -133,6 +135,14 @@ const AgentView = ({ location }: AgentViewProps) => {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Auto-send pending message from AAC board
+  useEffect(() => {
+    if (pendingMessage) {
+      handleSend(pendingMessage);
+      onPendingConsumed?.();
+    }
+  }, [pendingMessage]);
 
   const refreshReminders = () => {
     fetchReminders().then(setReminders);

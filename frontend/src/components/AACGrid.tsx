@@ -18,7 +18,7 @@ const AACGrid = ({ onButtonPress }: AACGridProps) => {
               aria-label={btn.label}
             >
               <span className="text-4xl leading-none">{btn.emoji}</span>
-              <span className={`text-xl font-semibold mt-1 ${colors.text} truncate max-w-full px-1`}>
+              <span className={`text-[11px] font-semibold mt-1 ${colors.text} truncate max-w-full px-1`}>
                 {btn.label}
               </span>
             </button>
