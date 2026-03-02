@@ -1,4 +1,5 @@
 # ConnectAble — AAC Communication System
+by Nipun, Alesia, 
 
 **ConnectAble** is a personal Augmentative and Alternative Communication (AAC) system that helps non-verbal users communicate through a symbol-based board. The system learns how a specific user communicates over time and predicts what they want to say next using their phrase history, location, and time-of-day context.
 
