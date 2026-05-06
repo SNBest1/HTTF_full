@@ -25,6 +25,12 @@ _KEY_PATH = Path(__file__).parent.parent / "aac.key"
 _conn: sqlite3.Connection | None = None
 _lock = threading.Lock()
 
+import time as _time
+
+_acceptance_cache: dict[str, float] = {}
+_acceptance_cache_ts: float = 0.0
+_ACCEPTANCE_CACHE_TTL: float = 60.0
+
 # Module-level variable populated by load_db_key() during app startup
 _db_key: str = ""
 
@@ -158,7 +164,11 @@ def get_autocomplete_stats() -> tuple[int, int]:
 
 
 def get_phrase_acceptance_scores() -> dict[str, float]:
-    """Return a mapping of suggested_phrase → acceptance rate (0.0–1.0)."""
+    """Return phrase → acceptance rate mapping. Cached for 60 seconds."""
+    global _acceptance_cache, _acceptance_cache_ts
+    now = _time.monotonic()
+    if now - _acceptance_cache_ts < _ACCEPTANCE_CACHE_TTL:
+        return _acceptance_cache
     conn = get_connection()
     with _lock:
         cur = conn.execute(
@@ -169,7 +179,9 @@ def get_phrase_acceptance_scores() -> dict[str, float]:
             GROUP BY suggested_phrase
             """
         )
-        return {row["suggested_phrase"]: row["score"] for row in cur.fetchall()}
+        _acceptance_cache = {row["suggested_phrase"]: row["score"] for row in cur.fetchall()}
+        _acceptance_cache_ts = now
+    return _acceptance_cache
 
 
 # ── reminders helpers ─────────────────────────────────────────────────────────

@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, Sparkles, Bot, Send, Loader2, Phone, ShoppingBag, Clock, Trash2 } from "lucide-react";
+import { Bell, Sparkles, Bot, Send, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { sendAgentMessage, fetchReminders, deleteReminder, AgentResponse, ReminderItem } from "@/lib/api";
+import { CallCard } from "@/components/agent/CallCard";
+import { FoodCard } from "@/components/agent/FoodCard";
+import { ReminderCard } from "@/components/agent/ReminderCard";
 
 interface Message {
   id: number;
@@ -18,76 +21,6 @@ interface AgentViewProps {
   location: string;
   pendingMessage?: string | null;
   onPendingConsumed?: () => void;
-}
-
-// ── Action card sub-components ────────────────────────────────────────────────
-
-function CallCard({ payload }: { payload: Record<string, unknown> }) {
-  const telUri = payload.tel_uri as string;
-  const contactName = payload.contact_name as string;
-  const phoneNumber = payload.phone_number as string;
-  return (
-    <div className="mt-2 bg-background rounded-xl p-3 border border-border flex flex-col gap-2">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Phone size={12} />
-        <span>{contactName || "Contact"}{phoneNumber ? ` · ${phoneNumber}` : ""}</span>
-      </div>
-      {telUri && telUri !== "tel:" ? (
-        <a href={telUri}>
-          <Button size="sm" className="w-full gap-2">
-            <Phone size={14} />
-            Call Now
-          </Button>
-        </a>
-      ) : (
-        <span className="text-xs text-muted-foreground">No phone number found.</span>
-      )}
-    </div>
-  );
-}
-
-function FoodCard({ payload }: { payload: Record<string, unknown> }) {
-  const items = payload.items as Array<{ name: string; price: string }>;
-  const total = payload.total as string;
-  const eta = payload.eta as string;
-  return (
-    <div className="mt-2 bg-background rounded-xl p-3 border border-border space-y-2">
-      <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-        <ShoppingBag size={12} />
-        <span>Order Summary</span>
-      </div>
-      <div className="space-y-1">
-        {items?.map((item, idx) => (
-          <div key={idx} className="flex justify-between text-xs text-foreground">
-            <span>{item.name}</span>
-            <span className="text-muted-foreground">{item.price}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-between text-xs font-semibold text-foreground border-t border-border pt-2">
-        <span>Total</span>
-        <span>{total}</span>
-      </div>
-      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-        <Clock size={10} />
-        <span>ETA: {eta}</span>
-      </div>
-    </div>
-  );
-}
-
-function ReminderCard({ payload }: { payload: Record<string, unknown> }) {
-  const text = payload.text as string;
-  const time = payload.time as string;
-  return (
-    <div className="mt-2 bg-background rounded-xl p-3 border border-border flex items-center gap-2">
-      <Bell size={14} className="text-primary shrink-0" />
-      <div>
-        <div className="text-xs font-semibold text-foreground">Reminder set!</div>
-        <div className="text-xs text-muted-foreground">{text}{time ? ` — ${time}` : ""}</div>
-      </div>
-    </div>
-  );
 }
 
 // ── Message bubble ─────────────────────────────────────────────────────────────

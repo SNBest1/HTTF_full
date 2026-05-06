@@ -27,6 +27,7 @@ router = APIRouter()
 
 _CONFIG_PATH = Path(__file__).parent.parent / "user_config.json"
 _IS_MACOS = platform.system() == "Darwin"
+_cached_config: dict = {}
 
 
 def _load_config() -> dict:
@@ -82,7 +83,8 @@ def _tts_worker() -> None:
 
 def start_tts_worker() -> None:
     """Spawn the TTS daemon thread once at application startup."""
-    global _tts_thread
+    global _tts_thread, _cached_config
+    _cached_config = _load_config()
     if _tts_thread is None or not _tts_thread.is_alive():
         _tts_thread = threading.Thread(target=_tts_worker, daemon=True, name="tts-worker")
         _tts_thread.start()
@@ -118,7 +120,7 @@ def _elevenlabs_stream(text: str, voice_id: str):
 
 @router.post("/speak")
 async def speak(req: SpeakRequest):
-    config = _load_config()
+    config = _cached_config
     mode = req.mode or config.get("tts_mode", "offline")
 
     if mode == "elevenlabs":
