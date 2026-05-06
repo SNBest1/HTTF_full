@@ -23,7 +23,9 @@ def log_phrase(req: LogPhraseRequest) -> LogPhraseResponse:
     try:
         embed_and_store(req.phrase, req.location, context_tag)
     except Exception as exc:
-        print(f"[log_phrase] Immediate embed failed (non-fatal): {exc}")
+        import traceback
+        print(f"[phrases] Embedding failed for phrase '{req.phrase}': {exc}")
+        traceback.print_exc()
 
     return LogPhraseResponse(
         id=row_id,

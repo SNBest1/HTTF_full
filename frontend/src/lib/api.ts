@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 export async function fetchSuggestions(location: string, partial: string): Promise<string[]> {
   try {
@@ -30,8 +30,8 @@ export async function logPhrase(phrase: string, location: string): Promise<void>
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phrase, location }),
     });
-  } catch {
-    // silent fail
+  } catch (err) {
+    console.error("[api] logPhrase failed:", err);
   }
 }
 
@@ -42,8 +42,8 @@ export async function logAccepted(suggestion: string): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ suggested_phrase: suggestion }),
     });
-  } catch {
-    // silent fail
+  } catch (err) {
+    console.error("[api] logAccepted failed:", err);
   }
 }
 
@@ -55,8 +55,8 @@ export async function logDismissed(suggestion: string): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ suggested_phrase: suggestion }),
     });
-  } catch {
-    // silent fail
+  } catch (err) {
+    console.error("[api] logDismissed failed:", err);
   }
 }
 
@@ -99,7 +99,8 @@ export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary> {
     const res = await fetch(`${BASE_URL}/analytics/summary`);
     if (!res.ok) throw new Error("Failed");
     return await res.json();
-  } catch {
+  } catch (err) {
+    console.error("[api] fetchAnalyticsSummary failed:", err);
     return { total_phrases: 0, acceptance_rate: 0, top_phrases: [], top_locations: {} };
   }
 }
@@ -110,7 +111,8 @@ export async function fetchHeatmap(): Promise<HeatmapEntry[]> {
     if (!res.ok) throw new Error("Failed");
     const body = await res.json();
     return body.data ?? body;
-  } catch {
+  } catch (err) {
+    console.error("[api] fetchHeatmap failed:", err);
     // Return mock data for demo
     return [
       { word: "I", count: 120 }, { word: "want", count: 95 }, { word: "water", count: 80 },
@@ -149,7 +151,8 @@ export async function sendAgentMessage(
     });
     if (!res.ok) throw new Error("Agent request failed");
     return (await res.json()) as AgentResponse;
-  } catch {
+  } catch (err) {
+    console.error("[api] sendAgentMessage failed:", err);
     return {
       reply: "I'm offline right now. Please try again later.",
       action_type: "general_chat",
@@ -164,7 +167,8 @@ export async function fetchReminders(): Promise<ReminderItem[]> {
     if (!res.ok) throw new Error("Failed to fetch reminders");
     const data = await res.json();
     return (data.reminders ?? []) as ReminderItem[];
-  } catch {
+  } catch (err) {
+    console.error("[api] fetchReminders failed:", err);
     return [];
   }
 }
@@ -189,7 +193,8 @@ export async function fetchConfig(): Promise<AppConfig> {
     const res = await fetch(`${BASE_URL}/config`);
     if (!res.ok) throw new Error("Failed");
     return await res.json();
-  } catch {
+  } catch (err) {
+    console.error("[api] fetchConfig failed:", err);
     return { locations: ["Home", "School", "Hospital", "Work"], default_location: "Home", tts_mode: "offline" };
   }
 }

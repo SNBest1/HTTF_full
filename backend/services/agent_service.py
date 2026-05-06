@@ -11,12 +11,12 @@ Supported intents (must match action_type in AgentResponse):
   - "general_chat"  → entities: {}
 """
 
-import json
 import re
 
 import ollama
 
 from services.llm_service import DEFAULT_MODEL
+from services.utils import extract_json_from_llm
 
 CLASSIFICATION_SYSTEM_PROMPT = (
     "You are an intent classifier for an AAC (Augmentative and Alternative Communication) "
@@ -52,36 +52,10 @@ VALID_INTENTS = {"make_call", "order_food", "set_reminder", "general_chat"}
 
 
 def _parse_classification_response(raw: str) -> dict:
-    """
-    Robustly extract a classification dict from raw LLM output.
-    Mirrors the multi-fallback approach in parse_llm_suggestions().
-
-    Returns a dict with keys 'intent' and 'entities'.
-    Falls back to { 'intent': 'general_chat', 'entities': {} } on parse failure.
-    """
     FALLBACK = {"intent": "general_chat", "entities": {}}
-
-    # 1. Strip markdown fences
-    cleaned = re.sub(r"```(?:json)?\s*", "", raw).replace("```", "").strip()
-
-    # 2. Direct JSON parse on cleaned text
-    try:
-        parsed = json.loads(cleaned)
-        if isinstance(parsed, dict) and "intent" in parsed:
-            return parsed
-    except Exception:
-        pass
-
-    # 3. Regex: find first {...} block in the raw output (greedy to capture full JSON object)
-    match = re.search(r"\{.*\}", raw, re.DOTALL)
-    if match:
-        try:
-            parsed = json.loads(match.group())
-            if isinstance(parsed, dict) and "intent" in parsed:
-                return parsed
-        except Exception:
-            pass
-
+    parsed = extract_json_from_llm(raw)
+    if isinstance(parsed, dict) and "intent" in parsed:
+        return parsed
     return FALLBACK
 
 

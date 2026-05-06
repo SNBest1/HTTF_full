@@ -54,7 +54,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         init_vector_store()
     except Exception as exc:
-        print(f"[startup] Vector store init failed (non-fatal): {exc}")
+        import traceback
+        print(f"[startup] WARNING: Vector store init failed — suggestions will fall back to LLM only.")
+        traceback.print_exc()
 
     print("[startup] Loading vocabulary...")
     load_vocab()

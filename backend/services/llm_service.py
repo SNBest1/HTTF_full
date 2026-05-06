@@ -8,47 +8,25 @@ Setup prerequisite:
   ollama pull phi3
 """
 
-import json
 import re
 
 import ollama
 
-DEFAULT_MODEL = "phi3"
+import json as _json
+from pathlib import Path as _Path
+
+_cfg = _json.loads((_Path(__file__).parent.parent / "user_config.json").read_text())
+DEFAULT_MODEL: str = _cfg.get("llm_model", "phi3")
+
+from services.utils import extract_json_from_llm
 
 
 def parse_llm_suggestions(raw: str, max_items: int = 5) -> list[str]:
-    """
-    Robustly extract a list of suggestion strings from raw LLM output.
+    parsed = extract_json_from_llm(raw)
+    if isinstance(parsed, list):
+        return [str(s).strip() for s in parsed if str(s).strip()][:max_items]
 
-    phi3 (and other models) often wrap their response in markdown code fences
-    or add preamble text, so bare json.loads() frequently fails.  This helper:
-      1. Strips markdown code fences (```json ... ``` or ``` ... ```)
-      2. Tries json.loads() on the cleaned text
-      3. Falls back to a regex scan for the first [...] block in the raw output
-      4. Last resort: splits by newline and strips bullet/dash prefixes
-    """
-    # 1. Strip markdown code fences
-    cleaned = re.sub(r"```(?:json)?\s*", "", raw).replace("```", "").strip()
-
-    # 2. Try direct parse on cleaned text
-    try:
-        parsed = json.loads(cleaned)
-        if isinstance(parsed, list):
-            return [str(s).strip() for s in parsed if str(s).strip()][:max_items]
-    except Exception:
-        pass
-
-    # 3. Regex: find the first [...] block anywhere in the raw output
-    match = re.search(r"\[.*?\]", raw, re.DOTALL)
-    if match:
-        try:
-            parsed = json.loads(match.group())
-            if isinstance(parsed, list):
-                return [str(s).strip() for s in parsed if str(s).strip()][:max_items]
-        except Exception:
-            pass
-
-    # 4. Plain-text fallback: one suggestion per non-empty line
+    print(f"[llm] JSON parse failed, using plain-text fallback. Raw (first 200 chars): {raw[:200]!r}")
     lines = [
         re.sub(r"^[\s\-•\d.]+", "", line).strip()
         for line in raw.splitlines()

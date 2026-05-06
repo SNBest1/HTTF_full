@@ -1,10 +1,8 @@
 import { User } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Switch } from "@/components/ui/switch";
 import { fetchAnalyticsSummary, type AnalyticsSummary } from "@/lib/api";
 
 const ProfileView = () => {
-  const [voiceClone, setVoiceClone] = useState(false);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
 
   useEffect(() => {
@@ -21,19 +19,6 @@ const ProfileView = () => {
         <div>
           <h2 className="text-xl font-bold text-foreground">Alex</h2>
           <p className="text-sm text-muted-foreground">AAC User</p>
-        </div>
-      </div>
-
-      {/* Voice Mode */}
-      <div className="bg-card rounded-xl p-5 border border-border">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-foreground">Voice Mode</h3>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {voiceClone ? "Voice Clone Mode" : "Standard TTS"}
-            </p>
-          </div>
-          <Switch checked={voiceClone} onCheckedChange={setVoiceClone} />
         </div>
       </div>
 
