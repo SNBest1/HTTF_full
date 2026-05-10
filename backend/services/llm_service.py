@@ -8,6 +8,7 @@ Setup prerequisite:
   ollama pull phi3
 """
 
+import ast
 import re
 
 import ollama
@@ -24,15 +25,36 @@ from services.utils import extract_json_from_llm
 def parse_llm_suggestions(raw: str, max_items: int = 5) -> list[str]:
     parsed = extract_json_from_llm(raw)
     if isinstance(parsed, list):
-        return [str(s).strip() for s in parsed if str(s).strip()][:max_items]
+        items = [str(s).strip() for s in parsed if str(s).strip()]
+        if items:
+            return items[:max_items]
 
-    print(f"[llm] JSON parse failed, using plain-text fallback. Raw (first 200 chars): {raw[:200]!r}")
-    lines = [
-        re.sub(r"^[\s\-•\d.]+", "", line).strip()
-        for line in raw.splitlines()
-        if line.strip()
-    ]
-    return [l for l in lines if l][:max_items]
+    # Lenient pass: ast.literal_eval tolerates mixed/single quotes and
+    # missing-comma-between-strings (treats them as adjacent-string concat).
+    cleaned = re.sub(r"```(?:json|python)?\s*", "", raw).replace("```", "").strip()
+    bracket = re.search(r"\[.*\]", cleaned, re.DOTALL)
+    if bracket:
+        try:
+            literal = ast.literal_eval(bracket.group())
+            if isinstance(literal, (list, tuple)):
+                items = [str(s).strip() for s in literal if str(s).strip()]
+                if items:
+                    return items[:max_items]
+        except (ValueError, SyntaxError):
+            pass
+
+    # Last resort: pull every quoted string out of the raw output, ignoring
+    # bare brackets/punctuation that the line-splitter used to surface as items.
+    print(f"[llm] JSON/literal parse failed, extracting quoted strings. Raw: {raw[:200]!r}")
+    items: list[str] = []
+    for double, single in re.findall(
+        r'"((?:[^"\\]|\\.)*)"|\'((?:[^\'\\]|\\.)*)\'', raw
+    ):
+        text = (double or single).strip()
+        text = text.replace('\\"', '"').replace("\\'", "'")
+        if text and len(text) > 1:
+            items.append(text)
+    return items[:max_items]
 
 
 def build_system_prompt(location: str, context_tag: str) -> str:
