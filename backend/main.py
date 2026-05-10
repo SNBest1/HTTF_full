@@ -87,8 +87,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],
-    allow_credentials=True,
+    # Personal local-only backend; no cookies/auth, so wildcard origin is safe.
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
