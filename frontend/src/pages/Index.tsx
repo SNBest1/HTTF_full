@@ -12,6 +12,7 @@ import SOSModal from "@/components/SOSModal";
 import { fetchLLMSuggest, logPhrase, logAccepted, logDismissed, speakText } from "@/lib/api";
 import { useSettings } from "@/hooks/useSettings";
 import { useSuggestions } from "@/hooks/useSuggestions";
+import { boards, ROOT_BOARD_ID } from "@/lib/aac-data";
 
 const Index = () => {
   const [tab, setTab] = useState<TabId>("aac");
@@ -20,7 +21,21 @@ const Index = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
   const [pendingAgentMessage, setPendingAgentMessage] = useState<string | null>(null);
+  const [boardStack, setBoardStack] = useState<string[]>([ROOT_BOARD_ID]);
   const justSpoke = useRef(false);
+
+  const currentBoardId = boardStack[boardStack.length - 1];
+  const currentBoard = boards[currentBoardId] ?? boards[ROOT_BOARD_ID];
+
+  const goToFolder = useCallback((boardId: string) => {
+    setBoardStack((s) => [...s, boardId]);
+  }, []);
+  const goBack = useCallback(() => {
+    setBoardStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+  }, []);
+  const goHome = useCallback(() => {
+    setBoardStack([ROOT_BOARD_ID]);
+  }, []);
 
   const { settings, setSettings, location, setLocation, locations } = useSettings();
   const { suggestions, setSuggestions } = useSuggestions(location, sentence);
@@ -97,6 +112,7 @@ const Index = () => {
     suggestions.forEach((s) => logDismissed(s));
     await logPhrase(sentence, location);
     justSpoke.current = true;
+    setBoardStack([ROOT_BOARD_ID]);
   }, [sentence, suggestions, location]);
 
   return (
@@ -130,7 +146,14 @@ const Index = () => {
                 : <Sparkles size={18} className="text-primary" />}
             </button>
           </div>
-          <AACGrid onButtonPress={addWord} />
+          <AACGrid
+            board={currentBoard}
+            canGoBack={boardStack.length > 1}
+            onWordPress={addWord}
+            onFolderPress={goToFolder}
+            onBack={goBack}
+            onHome={goHome}
+          />
           <BottomBar
             sentence={sentence}
             onSentenceChange={setSentence}

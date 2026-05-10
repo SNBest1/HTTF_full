@@ -3,7 +3,7 @@ import { fetchConfig } from "@/lib/api";
 import type { Settings } from "@/components/SettingsMenu";
 
 const DEFAULT_SETTINGS: Settings = { theme: "dark", dyslexia: false, highContrast: false };
-const DEFAULT_LOCATIONS = ["Home", "School", "Hospital", "Work"];
+const DEFAULT_LOCATIONS = ["Home", "Coffee", "Work"];
 
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(() => {

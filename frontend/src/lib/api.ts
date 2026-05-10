@@ -195,6 +195,6 @@ export async function fetchConfig(): Promise<AppConfig> {
     return await res.json();
   } catch (err) {
     console.error("[api] fetchConfig failed:", err);
-    return { locations: ["Home", "School", "Hospital", "Work"], default_location: "Home", tts_mode: "offline" };
+    return { locations: ["Home", "Coffee", "Work"], default_location: "Home", tts_mode: "offline" };
   }
 }
