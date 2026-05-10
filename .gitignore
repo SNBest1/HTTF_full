@@ -45,6 +45,7 @@ lerna-debug.log*
 
 # ── Claude Code internals ─────────────────────────────────────────────────────
 .claude/
+graphify-out/
 
 # ── Internal / planning docs ──────────────────────────────────────────────────
 docs/
